@@ -12,7 +12,6 @@ class Interface(InGame):
     def __init__(self):
         self.root = tk.Tk()
         self.in_ig_view = False
-        self.console_h = 220
         self.ui_init()
         self.ui_set_binds()
         self.ui_toggle_fullscreen(force=self.is_fullscreen)
@@ -149,13 +148,10 @@ class Interface(InGame):
         '''Creates in-game view (contains PyGame embed target frame)'''
         Log.debug('Creating embed view')
         self.ig_view = ttk.Frame(self.root, style='std.TFrame')
-        self.ig_console = ttk.Frame(self.ig_view, style='ig.TFrame',
-            height=self.console_h)
         self.pg_embed = ttk.Frame(self.ig_view, style='std.TFrame')
-        self.ig_console.grid(**self.ui_get_grid(0,1, padding=0))
         self.pg_embed.grid(**self.ui_get_grid(0,0, padding=0))
-        self.ui_rowcol_config(self.ig_view, [1], [1,0])
         self.pg_embed.bind('<Configure>', self.pg_update_size)
+        self.ui_rowcol_config(self.ig_view, [1], [1])
 
     def ui_show_view(self, page_key):
         '''Shows chosen view from views dictionary'''

@@ -12,3 +12,20 @@ btt_play: Play
 btt_start: Start
 btt_back: Back
 btt_quit: Quit
+
+# In-game
+objcount_suff: ' units'
+
+# MapObject names
+mapobj:
+    # Buildings
+    command:    'Command Center'
+    tower:      'Tower'
+    wall:       'Wall'
+    # Units
+    worker:     'Worker'
+    soldier:    'Soldier'
+    # Resources
+    wood:       'Wood Field'
+    iron:       'Iron Field'
+    fuel:       'Fuel Field'

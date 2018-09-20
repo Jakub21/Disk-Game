@@ -1,6 +1,7 @@
 import os
 import platform
 import pygame as pg
+from pygame.font import SysFont as Font
 import logging
 from PIL import Image
 Log = logging.getLogger('MainLogger')
@@ -9,6 +10,7 @@ class InGame:
     '''Class contains methods related to PyGame'''
     def __init__(self):
         self.pg_init_embed()
+        self.pg_load_icons()
         self.pg_load_textures()
         self.embed_size = self.CORE.window_size
 
@@ -18,9 +20,12 @@ class InGame:
         if platform.system == 'Windows':
             os.environ['SDL_VIDEODRIVER'] = 'windib'
         self.screen = pg.display.set_mode(tuple(self.CORE.window_size))
-        self.screen.fill(pg.Color(25,30,55))
+        pg.font.init()
         pg.display.init()
         pg.display.update()
+        # Overlay attributes
+        self.cnt_h = 200 # Console central height
+        self.sds_h = 320 # Console sides height (and width)
 
     def pg_update_size(self, evt):
         '''Updates PyGame embed screen size'''
@@ -28,6 +33,22 @@ class InGame:
         self.screen = pg.display.set_mode(self.embed_size)
         x, y = self.board_position
         self.screen.blit(self.board_bgr,(0,0),(x,y,*self.embed_size))
+
+    def pg_load_icons(self):
+        self.icons = {}
+        paths = {
+            # Resources
+            'wood':     'icons/wood.png',
+            'iron':     'icons/iron.png',
+            'fuel':     'icons/fuel.png',
+            # Attributes
+            'heal':     'icons/heal.png',
+            'armor':    'icons/armor.png',
+            'remain':   'icons/remain.png',
+        }
+        for key, fn in paths.items():
+            pillow = Image.open('img/'+fn)
+            self.icons[key] = self.pil_to_surface(pillow)
 
     def pg_load_textures(self):
         self.textures = {}
@@ -101,9 +122,56 @@ class InGame:
             y, x = x*fct, y*fct # NOTE: Reversed coordinates
             if x > x_rng[0] and x < x_rng[1] and y > y_rng[0] and y < y_rng[1]:
                 nw = object.footprint.getNW()
-                xx, yy = x-nw.x-bx, y-nw.y-by
+                xx, yy = x-nw.x*fct-bx, y-nw.y*fct-by
                 texture = self.pg_get_texture(object)
                 self.screen.blit(texture, (xx,yy))
+        self.pg_blit_console()
+        self.pg_blit_resources()
+
+    def pg_blit_console(self):
+        emb_w, emb_h = self.embed_size
+        rects = [
+            pg.Rect((0, emb_h-self.cnt_h),(emb_w, self.cnt_h)),
+            pg.Rect((0, emb_h-self.sds_h), (self.sds_h, self.sds_h)),
+            pg.Rect((emb_w-self.sds_h,emb_h-self.sds_h),(self.sds_h,self.sds_h))]
+        for rect in rects:
+            pg.draw.rect(self.screen, pg.Color(*self.CORE.console_clr), rect)
+        # Center (skipped when selection is empty)
+        if len(self.selection) != 0:
+            self.pg_blit_con_selection()
+
+    def pg_blit_con_selection(self):
+        font = Font(self.CORE.font_family, self.CORE.fonts['obj_name'][0])
+        emb_w, emb_h = self.embed_size
+        sp = 5 # Spacing [px]
+        if len(self.selection) == 1:
+            text = self.TEXT.mapobj[self.selection[0].objkey]
+        else:
+            text = str(len(self.selection))+self.TEXT.objcount_suff
+        text = font.render(text)
+        crect = text.get_rect()
+        crect.centerx = 0
+        self.screen.blit(text, (emb_w//2, emb_h-self.cnt_h))
+
+    def pg_blit_resources(self):
+        font = Font(self.CORE.font_family, self.CORE.fonts['resource'][0])
+        emb_w, emb_h = self.embed_size
+        sp = 5 # Spacing [px]
+        icon_h = 30 + sp  # [px]
+        icon_w = 30 + sp  # [px]
+        text_wood = font.render(str(self.player.rsrc_wood),False,(255,255,255))
+        text_iron = font.render(str(self.player.rsrc_iron),False,(255,255,255))
+        text_fuel = font.render(str(self.player.rsrc_fuel),False,(255,255,255))
+        text_wood.get_rect().right = 0
+        text_iron.get_rect().right = 0
+        text_fuel.get_rect().right = 0
+        self.screen.blit(self.icons['wood'], (emb_w-icon_w, sp))
+        self.screen.blit(text_wood, (emb_w-2*icon_w, sp))
+        self.screen.blit(self.icons['iron'], (emb_w-icon_w, sp+icon_h))
+        self.screen.blit(text_iron, (emb_w-2*icon_w, sp+icon_h))
+        self.screen.blit(self.icons['fuel'], (emb_w-icon_w, sp+2*icon_h))
+        self.screen.blit(text_fuel, (emb_w-2*icon_w, sp+2*icon_h))
+
 
     ################################
     # PyGame events and actions

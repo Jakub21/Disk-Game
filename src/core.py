@@ -25,7 +25,9 @@ class Application(Interface):
             s = datetime.now().second
             count += 1
             if s != prev_s:
-                if self.in_ig_view: Log.info('FPS: {}'.format(count))
+                if self.in_ig_view:
+                    Log.info('FPS: {}'.format(count))
+                    Log.debug(len(self.selection))
                 count = 0
             prev_s = s
             for evt in pg.event.get():
