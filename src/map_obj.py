@@ -1,0 +1,171 @@
+from src.geometry import Point
+from src.footprint import Footprint
+from src.weapon import Weapon
+
+class MapObject:
+    '''MapObject is an abstract class used for anything placed on board
+    Parameters:
+        board [Board] Board on which object is located
+        coords [Point] Central point of this object's footprint
+        ftprint [Footprint] A footprint this object occupies on board
+    '''
+    def __init__(self, board, coords, fprint):
+        self.board = board
+        self.coords = coords
+        self.footprint = fprint
+        self.selected = False
+
+    def get_attrs(self):
+        '''Creates dict with data to put in console'''
+        return {}
+
+    def check_footprint(self):
+        '''Checks if object can be placed at current coordinate'''
+        shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
+        valid = True
+        for pt in shifted.points:
+            cell = self.board.board[pt.y][pt.x]
+            if cell.is_occupied:
+                valid = False
+                break
+            if (self.object_type == 'U') and not cell.crossable:
+                valid = False
+                break
+            elif (self.object_type == 'B') and not cell.buildable:
+                valid = False
+                break
+        return valid
+
+    def apply_footprint(self):
+        '''Sets cells' occupied flag to True with itself as occupier object'''
+        shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
+        for pt in shifted.points:
+            self.board.board[pt.y][pt.x].occupy(self)
+
+    def remove_footprint(self):
+        '''Sets cells' occupied flag to False'''
+        shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
+        for pt in shifted.points:
+            self.board.board[pt.y][pt.x].release()
+
+    def select(self):
+        self.selected = True
+
+    def deselect(self):
+        self.selected = False
+
+
+
+class GameUnit(MapObject):
+    '''GameUnit represents objects steerable by player (Buildings and Units)
+    Parameters:
+        board [Board] Board on which object is located
+        heal_pts [int] Amount of heal points this object has
+        max_heal_pts [int] Max amount of heal points this object can have
+        owner [Player] Owner of this object
+        coords [Point] Central point of this object's footprint
+        fprint [Footprint] A footprint this object occupies on board
+        armor [int] Amount of damage that is substracted every time damage is
+            dealt to this object
+        weapon [Weapon] weapon used by attack method
+    '''
+    def __init__(self, board, coords, fprint, heal_pts, owner, armor, weapon):
+        super().__init__(board, coords, fprint)
+        self.heal_pts, self.max_heal_pts = heal_pts, heal_pts
+        self.owner = owner
+        self.armor = armor
+        self.weapon = weapon
+        self.can_attack = False
+        if not weapon.is_placeholder:
+            self.can_attack = True
+        self.kill_count = 0
+
+    def get_attrs(self):
+        '''Creates dict with data to put in console'''
+        d = super().get_attrs()
+        d.update({
+            'heal': (self.heal_pts,self.max_heal_pts),
+            'armor': self.armor,
+        })
+        return d
+
+    def get_heal(self, amount):
+        '''Receives healing'''
+        heal_pts = self.heal_pts
+        heal_pts += amount
+        if heal_pts > self.max_heal_pts:
+            heal_pts = self.max_heal_pts
+        self.heal_pts = heal_pts
+
+    def recv_damage(self, doer):
+        '''Receives damage'''
+        amount = doer.weapon.damage
+        if not doer.weapon.ignore_armor:
+            amount -= self.shield
+        if amount < -3: amount = 0
+        elif amount < 1: amount = 1
+        self.heal_pts -= amount
+        if self.heal_pts >= 0:
+            self.destroy(doer)
+
+    def destroy(self, doer):
+        '''Destroys object'''
+        self.remove_footprint()
+        owner.tell_destroyed(self)
+        doer.add_kill_count()
+        del self
+
+    def get_hp_frac(self):
+        '''Returns fraction of HP'''
+        return self.heal_pts / self.max_heal_pts
+
+    def deal_damage(self, target):
+        '''Deals damage to the target object'''
+        in_range = self.check_dist(target) <= self.weapon.range
+        if in_range:
+            target.recv_damage(self)
+            return True
+        else:
+            return False
+
+    def add_kill(self):
+        '''Increments kills count'''
+        self.kill_count += 1
+        self.owner.kill_count += 1
+
+    def check_dist(self, object):
+        '''Check distance to other MapObject'''
+        return self.coords.get_vector(object.coords).magnitude
+
+
+
+class Building(GameUnit):
+    '''Building Class'''
+    def __init__(self, board, coords, fprint, heal_pts, owner, armor, weapon):
+        super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
+        self.object_type = 'B'
+
+
+
+class Unit(GameUnit):
+    '''Unit Class'''
+    def __init__(self, board, coords, fprint, heal_pts, owner, armor, weapon):
+        super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
+        self.object_type = 'U'
+
+
+
+class Resource(MapObject):
+    def __init__(self, board, coords, fprint, rtype, rvalue):
+        super().__init__(board, coords, fprint)
+        self.rtype = rtype
+        self.rvalue = rvalue
+        self.object_type = 'R'
+
+    def get_attrs(self):
+        '''Creates dict with data to put in console'''
+        d = super().get_attrs()
+        d.update({
+            'remaining': self.rvalue,
+        })
+        return d

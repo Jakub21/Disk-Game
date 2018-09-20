@@ -1,0 +1,33 @@
+################################
+# CORE CONFIG
+################################
+
+# VERSION
+version_smb: '0.0.1'
+version_txt: 'Early Dev (PyGame)'
+
+# INTERNAL PATHS
+icon_path: 'img/icon.ico'
+mapsource_dir: 'img/maps/'
+mapsource_suff: '.png'
+
+# GENERAL GRAPHICAL INTERFACE
+use_fullscreen: False
+window_size: [1280, 720] # No effect in fullscreen
+
+# INTERFACE APPEARANCE
+font_family: Verdana
+fonts: # Defines fonts (font_key: [height, is_bold])
+    title:      [30, False]
+    label:      [12, False]
+    button:     [12, False]
+    version:    [10, False]
+styles: # Defines styles (style_name: [fg, bg, font_key])
+    std.TFrame:     ['#fff', '#2e2e2e']
+    ig.TFrame:      ['#fff', '#2e3e4e'] # In-game panels
+    std.TButton:    ['#000', '#2e2e2e', 'button']
+    title.TLabel:   ['#fff', '#2e2e2e', 'title']
+    version.TLabel: ['#fff', '#2e2e2e', 'version']
+
+# GRAPHICS
+cell_size: 4 # Background Generator: Size of single BoardCell, in pixels

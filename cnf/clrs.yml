@@ -1,0 +1,38 @@
+################################
+# COLORS
+################################
+
+map_src:
+    crossable:  [130, 130, 130]
+    nowalking:  [ 50,  50,  50]
+    no_builds:  [ 90,  90,  90]
+    start_pos:  [250,   0,   0]
+    norm_wood:  [150, 200, 150]
+    rich_wood:  [200, 250, 200]
+    norm_iron:  [200, 150, 150]
+    rich_iron:  [250, 200, 200]
+    norm_fuel:  [150, 150, 200]
+    rich_fuel:  [200, 200, 250]
+
+txtr_torepl:    [250,   0,   0, 255]
+txtr_slc_on:    [255, 255, 255, 255]
+txtr_slc_off:   [150, 150, 150, 255]
+
+background:    [[110, 120, 100],
+                [ 65,  90,  50],
+                [ 40,  50,  35]]
+
+player:
+    # Equal hue distribution (12 elems) at 50% sat / 50% lum
+    red: [190,  65,  65]
+    orange: [190, 130,  65]
+    yellow: [190, 190,  65]
+    #green_0: [130, 190,  65]
+    green: [ 65, 190,  55]
+    #green_2: [ 55, 190, 130]
+    cyan: [ 55, 190, 190]
+    blue: [ 55, 130, 190]
+    #blue_2: [ 55,  55, 190]
+    violet: [130,  55, 190]
+    pink: [190,  55, 190]
+    magenta: [190,  55, 130]

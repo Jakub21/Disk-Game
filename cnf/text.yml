@@ -1,0 +1,14 @@
+################################
+# GAME LOCALISATION
+################################
+
+window_title: Disk Game
+
+# Labels
+title_label: Disk Game
+
+# Buttons
+btt_play: Play
+btt_start: Start
+btt_back: Back
+btt_quit: Quit
