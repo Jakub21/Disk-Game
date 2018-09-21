@@ -26,8 +26,8 @@ class Player:
         self.session = session
         self.buildings_count = 0
         self.units_count = 0
-        self.rsrc_wood = 0
-        self.rsrc_iron = 0
+        self.rsrc_wood = 500
+        self.rsrc_iron = 50
         self.rsrc_fuel = 0
 
     def leave_session(self):
@@ -51,4 +51,4 @@ class Player:
         if object.object_type == 'U': self.units_count -=1
         if self.buildings_count == 0:
             self.defeat()
-        self.app_inst.ui_update_selection()
+        self.app_inst.ig_refresh_board = True

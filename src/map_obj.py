@@ -84,7 +84,7 @@ class GameUnit(MapObject):
         '''Creates dict with data to put in console'''
         d = super().get_attrs()
         d.update({
-            'heal': (self.heal_pts,self.max_heal_pts),
+            'heal': '{}/{}'.format(self.heal_pts,self.max_heal_pts),
             'armor': self.armor,
         })
         return d
@@ -166,6 +166,6 @@ class Resource(MapObject):
         '''Creates dict with data to put in console'''
         d = super().get_attrs()
         d.update({
-            'remaining': self.rvalue,
+            'remain': self.rvalue,
         })
         return d

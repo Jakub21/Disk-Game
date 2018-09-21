@@ -12,7 +12,7 @@ mapsource_dir: 'img/maps/'
 mapsource_suff: '.png'
 
 # GENERAL GRAPHICAL INTERFACE
-use_fullscreen: False
+use_fullscreen: True
 window_size: [1280, 720] # No effect in fullscreen
 
 # INTERFACE APPEARANCE
@@ -23,8 +23,8 @@ fonts: # Defines fonts (font_key: [height, is_bold])
     label:      [12, False]
     button:     [12, False]
     version:    [10, False]
-    resource:   [20, False]
-    obj_name:   [40, False]
+    resource:   [17, False]
+    obj_name:   [25, False]
 styles: # Defines styles (style_name: [fg, bg, font_key])
     std.TFrame:     ['#fff', '#2e2e2e']
     std.TButton:    ['#000', '#2e2e2e', 'button']

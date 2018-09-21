@@ -42,6 +42,7 @@ class Session:
             self.objects += [object]
             if object.object_type == 'B': object.owner.buildings_count += 1
             if object.object_type == 'U': object.owner.units_count += 1
+            self.app_inst.ig_refresh_board = True
         else:
             pass # TODO
 

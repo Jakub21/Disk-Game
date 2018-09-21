@@ -26,6 +26,6 @@ mapobj:
     worker:     'Worker'
     soldier:    'Soldier'
     # Resources
-    wood:       'Wood Field'
-    iron:       'Iron Field'
-    fuel:       'Fuel Field'
+    woodfield:  'Wood Field'
+    ironfield:  'Iron Field'
+    fuelfield:  'Fuel Field'

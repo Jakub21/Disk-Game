@@ -25,9 +25,7 @@ class Application(Interface):
             s = datetime.now().second
             count += 1
             if s != prev_s:
-                if self.in_ig_view:
-                    Log.info('FPS: {}'.format(count))
-                    Log.debug(len(self.selection))
+                if self.in_ig_view: Log.info('FPS: {}'.format(count))
                 count = 0
             prev_s = s
             for evt in pg.event.get():
@@ -66,7 +64,6 @@ class Application(Interface):
         self.session.add_player(self.player)
         self.ui_show_ig_view() # TEMP
 
-
     def session_end(self):
         '''Ends session and performs clean-up'''
         self.session.end()
@@ -75,6 +72,8 @@ class Application(Interface):
         del self.embed_size
         del self.board_bgr
         del self.board_position
+        del self.board_size
+        del self.ig_refresh_board
         del self.pg_pointing_target
         del self.pg_target
         del self.selection
