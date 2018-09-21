@@ -18,9 +18,9 @@ txtr_torepl:    [250,   0,   0, 255]
 txtr_slc_on:    [255, 255, 255, 255]
 txtr_slc_off:   [150, 150, 150, 255]
 
-background:    [[110, 120, 100],
+background:    [[90, 100, 80],
                 [ 65,  90,  50],
-                [ 40,  50,  35]]
+                [ 20,  30,  25]]
 
 player:
     # Equal hue distribution (12 elems) at 50% sat / 50% lum

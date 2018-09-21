@@ -89,6 +89,27 @@ class Board:
         pillow = pillow.resize((width*fct, height*fct))
         return pillow
 
+    def gen_minimap(self, size):
+        Log.debug('Generating mini-map background')
+        maxw, maxh = size
+        width, height = self.size
+        scale = min(maxw/width, maxh/height)
+        pillow = Image.new('RGB', self.size)
+        pixels = pillow.load()
+        colors = self.CLRS.background
+        for y in range(height):
+            for x in range(width):
+                cell = self.board[y][x]
+                if cell.crossable and cell.buildable:
+                    color = colors[0]
+                else:
+                    if cell.crossable: color = colors[1]
+                    else: color = colors[2]
+                pixels[y, x] = tuple(color)
+        pillow = pillow.resize((int(width*scale), int(height*scale)))
+        Log.debug('MM bgr size: '+str(pillow.size))
+        return pillow
+
     @staticmethod
     def find_key(dict, value):
         for k, v in dict.items():

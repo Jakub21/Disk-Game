@@ -173,6 +173,7 @@ class Interface(InGame):
         self.in_ig_view = True
         self.sframe.grid_forget()
         self.ig_view.grid(sticky=ALL)
+        self.pg_prepare_minimap()
 
     def ui_hide_ig_view(self):
         '''Switch from menu-like view to in-game view'''

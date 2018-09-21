@@ -1,6 +1,7 @@
 import os
 import platform
 import pygame as pg
+from math import sqrt
 from pygame.font import SysFont as Font
 import logging
 from PIL import Image
@@ -14,13 +15,17 @@ class InGameVars:
         self.brw, self.brh = 0, 0   # Board:Size
         self.mrg = 100              # Board:BlitMargin
         self.fct = a.CORE.cell_size # Board:ResizeFactor
-        self.cch = 200              # Console:CenterHeight
-        self.csh = 320              # Console:SidesHeight
+        self.cch = 200              # Console:Size:CenterHeight
+        self.csh = 320              # Console:Size:SidesHeight
         self.cs_ofs = 30            # Console:Selection:Offset_Ver
         self.cicon = 40             # Console:Selection:IconSize
         self.cs_sp = 2              # Console:Selection:Spacing
         self.mmh = 270              # Console:Minimap:Size
         self.mmx, self.mmy = 0, 0   # Console:Minimap:Offset
+        self.csp = 0                # Console:Minimap:Spacing
+        self.scale = 1              # Console:Minimap:Scale
+        self.mm_bgw,self.mm_bgh=0,0 # Console:Minimap:BgrImg:Size
+        self.mm_bgx,self.mm_bgy=0,0 # Console:Minimap:BgrImg:Offset
         self.mm_vbw,self.mm_vbh=0,0 # Console:Minimap:ViewBox:Size
         self.mm_vbx,self.mm_vby=0,0 # Console:Minimap:ViewBox:Offset
         self.ct_x,self.ct_y=25,-18  # Console:Counter:Offset
@@ -156,16 +161,40 @@ class InGame:
                 newpx[y, x] = color
         return pillow
 
+    def pg_prepare_minimap(self):
+        v = self.vars
+        # Calculations
+        v.csp = (v.csh-v.mmh)//2 # Console Spacing
+        v.mmx, v.mmy = v.csp, v.emb_h -v.csh +v.csp
+        scale_x, scale_y = v.mmh/v.brw, v.mmh/v.brh # map_w = map_h
+        v.scale = min(scale_x, scale_y)
+        # Scaling
+        v.mm_vbw, v.mm_vbh = int(v.scale*v.emb_w), int(v.scale*v.emb_h)
+        v.mm_vbx, v.mm_vby = int(v.scale*v.brx), int(v.scale*v.bry)
+        # Background image
+        mmap = self.session.board.gen_minimap((v.mmh, v.mmh)) # TODO: Invalid param
+        v.mm_bgw, v.mm_bgh = mmap.size
+        self.minimap_bgr = self.pil_to_surface(mmap)
+        v.mm_bgx,v.mm_bgy = v.mmx+(v.mmh-v.mm_bgw)//2, v.mmy+(v.mmh-v.mm_bgh)//2
+
     @staticmethod
     def pil_to_surface(pil):
         return pg.image.fromstring(pil.tobytes(), pil.size, pil.mode)
 
-    def pg_blit(self):
+    def pg_blit_all(self):
+        self.pg_blit_board()
+        self.pg_blit_resources()
+        self.pg_blit_console()
+        self.pg_blit_minimap()
+        self.pg_blit_counter()
+
+    def pg_blit_board(self):
         v = self.vars
         if self.ig_refresh_board:
             self.screen.blit(self.board_bgr, (0,0),
                 (v.brx, v.bry, v.emb_w, v.emb_h-v.cch))
             self.ig_refresh_board = False
+        # Objects on baord
         objects_list = self.session.objects
         x_rng = v.brx-v.mrg, v.brx+v.emb_w+v.mrg
         y_rng = v.bry-v.mrg, v.bry+v.emb_h+v.mrg
@@ -177,10 +206,6 @@ class InGame:
                 xx, yy = x-nw.x*v.fct-v.brx, y-nw.y*v.fct-v.bry
                 texture = self.pg_get_texture(object)
                 self.screen.blit(texture, (xx,yy))
-        self.pg_blit_resources()
-        self.pg_blit_console()
-        self.pg_blit_minimap()
-        self.pg_blit_counter()
 
     def pg_blit_console(self):
         v = self.vars
@@ -245,20 +270,33 @@ class InGame:
 
     def pg_blit_minimap(self):
         v = self.vars
-        # Calculations
-        csp = (v.csh-v.mmh)//2 # Console Spacing
-        v.mmx, v.mmy = csp, v.emb_h-v.csh+csp
-        scale_x, scale_y = v.mmh/v.brw, v.mmh/v.brh # map_w = map_h
-        scale = min(scale_x, scale_y)
-        # Scaling
-        v.mm_vbw, v.mm_vbh = int(scale*v.emb_w), int(scale*v.emb_h)
-        v.mm_vbx, v.mm_vby = int(scale*v.brx), int(scale*v.bry)
-        # Background
+        # Update vars
+        v.mmx, v.mmy = v.csp, v.emb_h -v.csh +v.csp
+        v.mm_bgx,v.mm_bgy = v.mmx+(v.mmh-v.mm_bgw)//2, v.mmy+(v.mmh-v.mm_bgh)//2
+        v.mm_vbw, v.mm_vbh = int(v.scale*v.emb_w), int(v.scale*v.emb_h)
+        v.mm_vbx, v.mm_vby = int(v.scale*v.brx), int(v.scale*v.bry)
+        # Background rect
         bgr = pg.Rect((v.mmx, v.mmy),(v.mmh, v.mmh))
         pg.draw.rect(self.screen, v.black, bgr)
+        # Background image
+        self.screen.blit(self.minimap_bgr, (v.mm_bgx, v.mm_bgy))
         # Boundaries of current view
         view = pg.Rect((v.mmx+v.mm_vbx, v.mmy+v.mm_vby), (v.mm_vbw, v.mm_vbh))
         pg.draw.rect(self.screen, v.white, view, 1)
+        # Objects on board
+        objects_list = self.session.objects
+        v.objs = []
+        for object in objects_list:
+            x, y = object.coords.get()
+            y, x = x*v.scale*v.fct, y*v.scale*v.fct # NOTE: Reversed
+            x, y = x+v.mmx, y+v.mmy
+            nw = object.footprint.getNW()
+            radius = int(sqrt(nw.x**2+nw.y**2)*v.scale)
+            if radius == 0: radius = 1
+            v.objs += [(int(x),int(y))]
+            try: color = pg.Color(*object.owner.color)
+            except AttributeError: color = v.white
+            pg.draw.circle(self.screen, color, (int(x),int(y)), int(radius))
 
     def pg_blit_counter(self):
         v = self.vars
@@ -283,7 +321,7 @@ class InGame:
         # Calculate regions
         notch_n = v.emb_h -v.csh
         notch_h = v.csh -v.cch
-        csp = (v.csh-v.mmh)//2 # Console-minimap spacing
+        #v.csp = (v.csh-v.mmh)//2 # Console-minimap spacing
         rgn_board = pg.Rect((0, 0), (v.emb_w, v.emb_h-v.csh))
         rgn_notch = pg.Rect((v.csh, notch_n), (v.emb_w-2*v.csh, notch_h))
         rgn_mnmap = pg.Rect((v.mmx, v.mmy),(v.mmh, v.mmh))

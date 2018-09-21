@@ -37,14 +37,15 @@ class Application(Interface):
                 self.pg_handle(evt)
             if self.in_ig_view:
                 if sec != prev_sec:
-                    #Log.info('FPS: {}\tTICKS: {}'.format(frames_count,ticks))
+                    Log.info('FPS: {}\tTICKS: {}'.format(frames_count,ticks))
+                    #Log.debug(self.vars)
                     ticks = 0
                     frames_count = 0
                 if usec_elapsed >= tick_length:
                     usec_elapsed -= tick_length
                     self.session.update()
                     ticks += 1
-                self.pg_blit()
+                self.pg_blit_all()
             pg.display.update()
             self.root.update()
             frames_count += 1
@@ -89,6 +90,7 @@ class Application(Interface):
         del self.pg_pointing_target
         del self.pg_target
         del self.selection
+        del self.minimap_bgr
         self.in_session = False
 
     def quit(self):
