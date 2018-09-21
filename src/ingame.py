@@ -6,6 +6,39 @@ import logging
 from PIL import Image
 Log = logging.getLogger('MainLogger')
 
+class InGameVars:
+    '''Contains in-game UI variables and constants'''
+    def __init__(self, a):
+        self.emb_w,self.emb_h = 0,0 # Embed:Size
+        self.brx, self.bry = 0, 0   # Board:Offset
+        self.brw, self.brh = 0, 0   # Board:Size
+        self.mrg = 100              # Board:BlitMargin
+        self.fct = a.CORE.cell_size # Board:ResizeFactor
+        self.cch = 200              # Console:CenterHeight
+        self.csh = 320              # Console:SidesHeight
+        self.cs_ofs = 30            # Console:Selection:Offset_Ver
+        self.cicon = 40             # Console:Selection:IconSize
+        self.cs_sp = 2              # Console:Selection:Spacing
+        self.mmh = 270              # Console:Minimap:Size
+        self.mmx, self.mmy = 0, 0   # Console:Minimap:Offset
+        self.mm_vbw,self.mm_vbh=0,0 # Console:Minimap:ViewBox:Size
+        self.mm_vbx,self.mm_vby=0,0 # Console:Minimap:ViewBox:Offset
+        self.ccap_x = -48           # Console:Texture:Correction_Hor
+        self.ccap_y = -28           # Console:Texture:Correction_Ver
+        self.ricon = 30             # Resources:IconSize
+        self.rs_sp = 5              # Resources:Spacing
+        self.white = pg.Color(255,255,255)
+        self.black = pg.Color(0,0,0)
+        # Board:BlitMargin - How far away center of object can be from
+        # screen boundaries and still be included in blitting
+
+    def __repr__(self):
+        t = 'InGameVars attributes:\n'
+        for key, val in self.__dict__.items():
+            t += '\t{}:\t{}\n'.format(key, val)
+        return t
+
+
 class InGame:
     '''Class contains methods related to PyGame'''
     def __init__(self):
@@ -13,7 +46,6 @@ class InGame:
         self.pg_load_ui_gfx()
         self.pg_load_icons()
         self.pg_load_textures()
-        self.embed_size = self.CORE.window_size
         self.ig_refresh_board = False
 
     def pg_init_embed(self):
@@ -26,14 +58,13 @@ class InGame:
         pg.display.init()
         pg.display.update()
         # Overlay attributes
-        self.cnt_h = 200 # Console central height
-        self.sds_h = 320 # Console sides height (and width)
-        self.minimap_h = 270 # Minimap height (and width)
+        self.vars = InGameVars(self)
 
     def pg_update_size(self, evt):
         '''Updates PyGame embed screen size'''
-        self.embed_size = evt.width, evt.height
-        self.screen = pg.display.set_mode(self.embed_size)
+        v = self.vars
+        v.emb_w, v.emb_h = evt.width, evt.height
+        self.screen = pg.display.set_mode((v.emb_w, v.emb_h))
         self.ig_refresh_board = True
 
     def pg_load_ui_gfx(self):
@@ -98,7 +129,7 @@ class InGame:
 
     def pg_receive_bgr(self, bgr):
         self.board_bgr = self.pil_to_surface(bgr)
-        self.board_size = bgr.size
+        self.vars.brw, self.vars.brh = bgr.size
 
     def pg_get_texture(self, object):
         texture = self.textures[object.objkey][object.selected]
@@ -129,141 +160,161 @@ class InGame:
         return pg.image.fromstring(pil.tobytes(), pil.size, pil.mode)
 
     def pg_blit(self):
-        mrg = 100 # Margin
-        fct = self.CORE.cell_size # Resize factor
-        bx, by = self.board_position
+        v = self.vars
         if self.ig_refresh_board:
-            emb_w, emb_h = self.embed_size
-            self.screen.blit(self.board_bgr,(0,0),(bx,by,bx+emb_w, by+emb_h-self.cnt_h))
+            self.screen.blit(self.board_bgr, (0,0),
+                (v.brx, v.bry, v.emb_w, v.emb_h-v.cch))
             self.ig_refresh_board = False
         objects_list = self.session.objects
-        x_rng = bx-mrg, bx+self.embed_size[0]+mrg
-        y_rng = by-mrg, by+self.embed_size[1]+mrg
+        x_rng = v.brx-v.mrg, v.brx+v.emb_w+v.mrg
+        y_rng = v.bry-v.mrg, v.bry+v.emb_h+v.mrg
         for object in objects_list:
             x, y = object.coords.get()
-            y, x = x*fct, y*fct # NOTE: Reversed coordinates
+            y, x = x*v.fct, y*v.fct # NOTE: Reversed coordinates
             if x > x_rng[0] and x < x_rng[1] and y > y_rng[0] and y < y_rng[1]:
                 nw = object.footprint.getNW()
-                xx, yy = x-nw.x*fct-bx, y-nw.y*fct-by
+                xx, yy = x-nw.x*v.fct-v.brx, y-nw.y*v.fct-v.bry
                 texture = self.pg_get_texture(object)
                 self.screen.blit(texture, (xx,yy))
-        self.pg_blit_console()
         self.pg_blit_resources()
+        self.pg_blit_console()
         self.pg_blit_minimap()
 
     def pg_blit_console(self):
-        emb_w, emb_h = self.embed_size
+        v = self.vars
         # Console background
         rects = [
-            pg.Rect((0, emb_h-self.cnt_h),(emb_w, self.cnt_h)),
-            pg.Rect((0, emb_h-self.sds_h), (self.sds_h, self.sds_h)),
-            pg.Rect((emb_w-self.sds_h,emb_h-self.sds_h),(self.sds_h,self.sds_h))]
+            pg.Rect((0, v.emb_h-v.cch),(v.emb_w, v.cch)),
+            pg.Rect((0, v.emb_h-v.csh), (v.csh, v.csh)),
+            pg.Rect((v.emb_w-v.csh,v.emb_h-v.csh),(v.csh,v.csh))]
         for rect in rects:
             pg.draw.rect(self.screen, pg.Color(*self.CORE.console_clr), rect)
         # Center (skipped when selection is empty)
         if len(self.selection) != 0:
             self.pg_blit_cns_selection()
         # Console Caps (these constants only work with currently used textures)
-        x = emb_w -self.sds_h -48
-        self.screen.blit(self.ui_gfx['cns_cap_l'], (0, emb_h-self.sds_h-28))
-        self.screen.blit(self.ui_gfx['cns_cap_r'], (x, emb_h-self.sds_h-28))
+        x = v.emb_w -v.csh +v.ccap_x
+        self.screen.blit(self.ui_gfx['cns_cap_l'], (0, v.emb_h-v.csh+v.ccap_y))
+        self.screen.blit(self.ui_gfx['cns_cap_r'], (x, v.emb_h-v.csh+v.ccap_y))
 
     def pg_blit_cns_selection(self):
+        v = self.vars
         font = Font(self.CORE.font_family, self.CORE.fonts['obj_name'][0])
-        emb_w, emb_h = self.embed_size
-        icon_size = 40
-        sp = 2 # Spacing [px]
-        nn, ww = emb_h -self.cnt_h + 30, emb_w//2 - 2*icon_size
+        nn, ww = v.emb_h -v.cch + v.cs_ofs, v.emb_w//2 - 2*v.cicon
         if len(self.selection) == 1:
             text = self.TEXT.mapobj[self.selection[0].objkey]
             index = 0
             for key, value in self.selection[0].get_attrs().items():
                 icon = self.icons[key]
-                vtext = font.render(str(value),False,(255,255,255))
-                n = nn + index*(icon_size+sp)
+                vtext = font.render(str(value),False,v.white)
+                n = nn + index*(v.cicon+v.cs_sp)
                 self.screen.blit(icon, (ww, n))
-                self.screen.blit(vtext, (ww +icon_size +sp, n))
+                self.screen.blit(vtext, (ww +v.cicon +v.cs_sp, n))
                 index += 1
         else:
             text = str(len(self.selection))+self.TEXT.objcount_suff
             pass # TODO
-        text = font.render(text, False, (255,255,255))
+        text = font.render(text, False, v.white)
         crect = text.get_rect()
-        crect.top = emb_h-self.cnt_h
-        crect.centerx = emb_w//2
+        crect.top = v.emb_h-v.cch
+        crect.centerx = v.emb_w//2
         self.screen.blit(text, crect)
 
     def pg_blit_resources(self):
+        v = self.vars
         font = Font(self.CORE.font_family, self.CORE.fonts['resource'][0])
-        emb_w, emb_h = self.embed_size
-        sp = 5 # Spacing [px]
-        icon_h = 30 + sp  # [px]
-        icon_w = 30 + sp  # [px]
-        text_wood = font.render(str(self.player.rsrc_wood),False,(255,255,255))
-        text_iron = font.render(str(self.player.rsrc_iron),False,(255,255,255))
-        text_fuel = font.render(str(self.player.rsrc_fuel),False,(255,255,255))
+        icon_h = v.ricon + v.rs_sp
+        icon_w = v.ricon + v.rs_sp
+        text_wood = font.render(str(self.player.rsrc_wood),False,v.white)
+        text_iron = font.render(str(self.player.rsrc_iron),False,v.white)
+        text_fuel = font.render(str(self.player.rsrc_fuel),False,v.white)
         wood_rect = text_wood.get_rect()
         iron_rect = text_iron.get_rect()
         fuel_rect = text_fuel.get_rect()
         for i, rect in enumerate([wood_rect, iron_rect, fuel_rect]):
-            rect.top = i*icon_h +2*sp
-            rect.right = emb_w -icon_w -sp
-        self.screen.blit(self.icons['wood'], (emb_w-icon_w, sp))
+            rect.top = i*icon_h +2*v.rs_sp
+            rect.right = v.emb_w -icon_w -v.rs_sp
+        self.screen.blit(self.icons['wood'], (v.emb_w-icon_w, v.rs_sp))
         self.screen.blit(text_wood, wood_rect)
-        self.screen.blit(self.icons['iron'], (emb_w-icon_w, sp+icon_h))
+        self.screen.blit(self.icons['iron'], (v.emb_w-icon_w, v.rs_sp+icon_h))
         self.screen.blit(text_iron, iron_rect)
-        self.screen.blit(self.icons['fuel'], (emb_w-icon_w, sp+2*icon_h))
+        self.screen.blit(self.icons['fuel'], (v.emb_w-icon_w, v.rs_sp+2*icon_h))
         self.screen.blit(text_fuel, fuel_rect)
 
     def pg_blit_minimap(self):
-        emb_w, emb_h = self.embed_size
-        bx, by = self.board_position
-        bw, bh = self.board_size
-        map_h = self.minimap_h
-        cns = self.sds_h
-        sp = 5 # Spacing [px]
+        v = self.vars
         # Calculations
-        csp = (cns-map_h)//2 # Console Spacing
-        w, n = sp, emb_h-cns+csp
-        scale_x, scale_y = map_h/bw, map_h/bh # map_w = map_h
+        csp = (v.csh-v.mmh)//2 # Console Spacing
+        v.mmx, v.mmy = csp, v.emb_h-v.csh+csp
+        scale_x, scale_y = v.mmh/v.brw, v.mmh/v.brh # map_w = map_h
         scale = min(scale_x, scale_y)
         # Scaling
-        emb_w, emb_h = int(scale*emb_w), int(scale*emb_h)
-        bx, by = int(scale*bx), int(scale*by)
+        v.mm_vbw, v.mm_vbh = int(scale*v.emb_w), int(scale*v.emb_h)
+        v.mm_vbx, v.mm_vby = int(scale*v.brx), int(scale*v.bry)
         # Background
-        bgr = pg.Rect((w, n),(map_h, map_h))
-        pg.draw.rect(self.screen, pg.Color(0,0,0), bgr)
+        bgr = pg.Rect((v.mmx, v.mmy),(v.mmh, v.mmh))
+        pg.draw.rect(self.screen, v.black, bgr)
         # Boundaries of current view
-        view = pg.Rect((w+bx, n+by), (emb_w, emb_h))
-        pg.draw.rect(self.screen, pg.Color(255,255,255), view, 1)
+        view = pg.Rect((v.mmx+v.mm_vbx, v.mmy+v.mm_vby), (v.mm_vbw, v.mm_vbh))
+        pg.draw.rect(self.screen, v.white, view, 1)
 
     ################################
     # PyGame events and actions
 
     def pg_handle(self, evt):
+        v = self.vars
+        # Calculate regions
+        notch_n = v.emb_h -v.csh
+        notch_h = v.csh -v.cch
+        csp = (v.csh-v.mmh)//2 # Console-minimap spacing
+        rgn_board = pg.Rect((0, 0), (v.emb_w, v.emb_h-v.csh))
+        rgn_notch = pg.Rect((v.csh, notch_n), (v.emb_w-2*v.csh, notch_h))
+        rgn_mnmap = pg.Rect((v.mmx, v.mmy),(v.mmh, v.mmh))
+        # Check event type and handle it
         if evt.type == pg.MOUSEMOTION:
-            if evt.buttons[1]: self.pg_board_drag(evt.rel)
+            pos = evt.pos
+            if evt.buttons[1]:
+                if rgn_board.collidepoint(pos) or rgn_notch.collidepoint(pos):
+                    self.pg_board_drag(evt.rel)
+            if evt.buttons[0]:
+                if rgn_mnmap.collidepoint(pos):
+                    self.pg_minimap_set((pos[0]-v.mmx, pos[1]-v.mmy))
         elif evt.type == pg.MOUSEBUTTONDOWN:
-            if evt.button == 1: self.pg_board_lclick(evt.pos)
+            pos = evt.pos
+            if rgn_board.collidepoint(pos) or rgn_notch.collidepoint(pos):
+                if evt.button == 1: self.pg_board_lclick(pos)
+            if rgn_mnmap.collidepoint(pos):
+                if evt.button == 1:
+                    self.pg_minimap_set((pos[0]-v.mmx, pos[1]-v.mmy))
 
     def pg_board_drag(self, rel):
+        v = self.vars
         rel_x, rel_y = rel
-        bw, bh = self.board_size
-        x, y = self.board_position
-        emb_w, emb_h = self.embed_size
-        x, y = x - rel_x, y - rel_y
+        x, y = v.brx - rel_x, v.bry - rel_y
         if x < 0: x = 0
-        if x > bw-emb_w: x = bw-emb_w
+        if x > v.brw-v.emb_w: x = v.brw-v.emb_w
         if y < 0: y = 0
-        if y > bh-emb_h: y = bh-emb_h
-        self.board_position = x, y
+        if y > v.brh-v.emb_h: y = v.brh-v.emb_h
+        v.brx, v.bry = x, y
+        self.ig_refresh_board = True
+
+    def pg_minimap_set(self, pos):
+        '''pos (0,0) is in minimap NW corner'''
+        v = self.vars
+        frac_x = (pos[0]-int(v.mm_vbw//2))/v.mmh
+        frac_y = (pos[1]-int(v.mm_vbh//2))/v.mmh
+        x, y = int(frac_x*v.brw), int(frac_y*v.brh)
+        if x < 0: x = 0
+        if x > v.brw-v.emb_w: x = v.brw-v.emb_w
+        if y < 0: y = 0
+        if y > v.brh-v.emb_h: y = v.brh-v.emb_h
+        v.brx, v.bry = x, y
         self.ig_refresh_board = True
 
     def pg_board_lclick(self, pos):
-        fct = self.CORE.cell_size
-        bx, by = self.board_position
+        v = self.vars
         x, y = pos
-        x, y = (x+bx)//fct, (y+by)//fct
+        x, y = (x+v.brx)//v.fct, (y+v.bry)//v.fct
         if self.pg_pointing_target:
             self.pg_set_target(x, y)
         else:
@@ -274,7 +325,6 @@ class InGame:
         self.pg_target = x, y
 
     def pg_select(self, x, y):
-        self.ig_refresh_board = True
         x, y = y, x # NOTE
         board = self.session.board
         shift = pg.key.get_mods() & pg.KMOD_LSHIFT
@@ -295,6 +345,7 @@ class InGame:
             if not shift: self.pg_deselect_all()
             # Clicking with shift at empty cell does nothing
         self.sort_selection()
+        self.ig_refresh_board = True
 
     def pg_deselect_all(self):
         for obj in self.selection:

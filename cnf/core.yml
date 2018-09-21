@@ -12,7 +12,7 @@ mapsource_dir: 'img/maps/'
 mapsource_suff: '.png'
 
 # GENERAL GRAPHICAL INTERFACE
-use_fullscreen: True
+use_fullscreen: False
 window_size: [1280, 720] # No effect in fullscreen
 
 # INTERFACE APPEARANCE

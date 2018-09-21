@@ -25,7 +25,9 @@ class Application(Interface):
             s = datetime.now().second
             count += 1
             if s != prev_s:
-                if self.in_ig_view: Log.info('FPS: {}'.format(count))
+                if self.in_ig_view:
+                    Log.info('FPS: {}'.format(count))
+                    #Log.debug(self.vars) # Debug info for in-game UI
                 count = 0
             prev_s = s
             for evt in pg.event.get():
@@ -53,8 +55,6 @@ class Application(Interface):
         self.in_session = True
         # Initializing required variables
         self.pg_pointing_target = False
-        self.board_position = 0, 0
-        self.embed_size = self.CORE.window_size
         self.selection = []
         self.pg_target = 0, 0
         # Starting session
@@ -69,10 +69,8 @@ class Application(Interface):
         self.session.end()
         del self.session
         del self.screen
-        del self.embed_size
         del self.board_bgr
-        del self.board_position
-        del self.board_size
+        del self.vars
         del self.ig_refresh_board
         del self.pg_pointing_target
         del self.pg_target
