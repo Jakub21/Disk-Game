@@ -1,3 +1,4 @@
+from datetime import time
 import src.game_objs as u
 
 import logging
@@ -11,11 +12,23 @@ class Session:
     '''
     def __init__(self, app_inst):
         Log.debug('Starting gamesession instance')
+        self.TICKS_PER_SEC = 50
         self.app_inst = app_inst
         self.in_lobby = True
         self.players = []
         self.objects = []
         self.is_paused = True
+        self.tick = 0
+        self.elapsed = 0
+
+    def begin(self):
+        self.is_paused = False
+
+    def update(self):
+        #Log.debug('Tick {}'.format(self.tick%100))
+        self.tick += 1
+        if self.tick % self.TICKS_PER_SEC == 0:
+            self.elapsed += 1
 
     def set_board(self, board):
         '''Adds board to session instance'''

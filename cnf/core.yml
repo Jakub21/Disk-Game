@@ -25,6 +25,7 @@ fonts: # Defines fonts (font_key: [height, is_bold])
     version:    [10, False]
     resource:   [17, False]
     obj_name:   [25, False]
+    counter:    [22, False]
 styles: # Defines styles (style_name: [fg, bg, font_key])
     std.TFrame:     ['#fff', '#2e2e2e']
     std.TButton:    ['#000', '#2e2e2e', 'button']

@@ -23,6 +23,7 @@ class InGameVars:
         self.mmx, self.mmy = 0, 0   # Console:Minimap:Offset
         self.mm_vbw,self.mm_vbh=0,0 # Console:Minimap:ViewBox:Size
         self.mm_vbx,self.mm_vby=0,0 # Console:Minimap:ViewBox:Offset
+        self.ct_x,self.ct_y=25,-18  # Console:Counter:Offset
         self.ccap_x = -48           # Console:Texture:Correction_Hor
         self.ccap_y = -28           # Console:Texture:Correction_Ver
         self.ricon = 30             # Resources:IconSize
@@ -179,6 +180,7 @@ class InGame:
         self.pg_blit_resources()
         self.pg_blit_console()
         self.pg_blit_minimap()
+        self.pg_blit_counter()
 
     def pg_blit_console(self):
         v = self.vars
@@ -257,6 +259,21 @@ class InGame:
         # Boundaries of current view
         view = pg.Rect((v.mmx+v.mm_vbx, v.mmy+v.mm_vby), (v.mm_vbw, v.mm_vbh))
         pg.draw.rect(self.screen, v.white, view, 1)
+
+    def pg_blit_counter(self):
+        v = self.vars
+        font = Font(self.CORE.font_family, self.CORE.fonts['counter'][0])
+        x = v.ct_x
+        y = v.emb_h - v.csh + v.ct_y
+        elapsed = self.session.elapsed
+        s = '0'+str(elapsed % 60) if elapsed% 60 < 10 else str(elapsed % 60)
+        m = '0'+str(elapsed //60) if elapsed//60 < 10 else str(elapsed //60)
+        text = '{}:{}'.format(m, s)
+        if elapsed >= 60*60: # 1 hour
+            text = '{}:'.format(elapsed//(60*60))+text
+        text = font.render(text, False, v.white)
+        self.screen.blit(text, (x,y))
+
 
     ################################
     # PyGame events and actions

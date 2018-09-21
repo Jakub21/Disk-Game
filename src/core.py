@@ -20,22 +20,35 @@ class Application(Interface):
         self.mainloop()
 
     def mainloop(self):
-        prev_s, count = 0, 0
+        usec_elapsed = 0
+        frames_count = 0
+        prev_sec, prev_usec = 0, 0
+        usec_elapsed = 0
+        ticks_per_sec = 50
+        tick_length = 1/ticks_per_sec*1e6
+        ticks = 0
         while not self.leaving:
-            s = datetime.now().second
-            count += 1
-            if s != prev_s:
-                if self.in_ig_view:
-                    Log.info('FPS: {}'.format(count))
-                    #Log.debug(self.vars) # Debug info for in-game UI
-                count = 0
-            prev_s = s
+            time = datetime.now()
+            sec = time.second
+            usec = time.microsecond
+            if usec > prev_usec: usec_elapsed += usec - prev_usec
+            else: prev_usec += prev_usec - usec
             for evt in pg.event.get():
                 self.pg_handle(evt)
             if self.in_ig_view:
+                if sec != prev_sec:
+                    #Log.info('FPS: {}\tTICKS: {}'.format(frames_count,ticks))
+                    ticks = 0
+                    frames_count = 0
+                if usec_elapsed >= tick_length:
+                    usec_elapsed -= tick_length
+                    self.session.update()
+                    ticks += 1
                 self.pg_blit()
             pg.display.update()
             self.root.update()
+            frames_count += 1
+            prev_sec, prev_usec = sec, usec
 
     def load_config(self):
         '''Loads configuration files'''
@@ -62,6 +75,7 @@ class Application(Interface):
         path = self.CORE.mapsource_dir + variant + self.CORE.mapsource_suff
         self.session.set_board(Board(self.session, path))
         self.session.add_player(self.player)
+        self.session.begin()
         self.ui_show_ig_view() # TEMP
 
     def session_end(self):
