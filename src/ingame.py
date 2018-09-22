@@ -28,7 +28,7 @@ class InGameVars:
         self.mm_bgx,self.mm_bgy=0,0 # Console:Minimap:BgrImg:Offset
         self.mm_vbw,self.mm_vbh=0,0 # Console:Minimap:ViewBox:Size
         self.mm_vbx,self.mm_vby=0,0 # Console:Minimap:ViewBox:Offset
-        self.ct_x,self.ct_y=25,-18  # Console:Counter:Offset
+        self.ct_x,self.ct_y=100,-18 # Console:Counter:Offset
         self.ccap_x = -48           # Console:Texture:Correction_Hor
         self.ccap_y = -28           # Console:Texture:Correction_Ver
         self.ricon = 30             # Resources:IconSize
@@ -310,7 +310,9 @@ class InGame:
         if elapsed >= 60*60: # 1 hour
             text = '{}:'.format(elapsed//(60*60))+text
         text = font.render(text, False, v.white)
-        self.screen.blit(text, (x,y))
+        rect = text.get_rect()
+        rect.right, rect.top = x, y
+        self.screen.blit(text, rect)
 
 
     ################################
