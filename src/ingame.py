@@ -17,9 +17,13 @@ class InGameVars:
         self.fct = a.CORE.cell_size # Board:ResizeFactor
         self.cch = 200              # Console:Size:CenterHeight
         self.csh = 320              # Console:Size:SidesHeight
-        self.cs_ofs = 30            # Console:Selection:Offset_Ver
         self.cicon = 40             # Console:Selection:IconSize
-        self.cs_sp = 2              # Console:Selection:Spacing
+        self.cs_sp = 1              # Console:Selection:Spacing
+        self.cs_ofs = 32            # Console:Selection:Text:Offset
+        self.csofx = -160           # Console:Selection:MultiObjs:Offset
+        self.csmsp = 8              # Console:Selection:MultiObjs:Spacing
+        self.cs_cols = 8            # Console:Selection:MultiObjs:Columns
+        self.cs_rows = 3            # Console:Selection:MultiObjs:Rows
         self.mmh = 270              # Console:Minimap:Size
         self.mmx, self.mmy = 0, 0   # Console:Minimap:Offset
         self.csp = 0                # Console:Minimap:Spacing
@@ -101,6 +105,7 @@ class InGame:
 
     def pg_load_textures(self):
         self.textures = {}
+        self.icons_gray = {}
         round_mask_path = 'img/mask68.png'
         round_mask = Image.open(round_mask_path)
         paths = {
@@ -115,23 +120,22 @@ class InGame:
         }
         for key, (fn, has_plr_clr) in paths.items():
             self.textures[key] = {}
+            pillow = Image.open('img/'+fn)
+            self.icons_gray[key] = self.get_grayicon(pillow)
             if 'field' in key: # Round white mask as "selected" texture
-                pillow = Image.open('img/'+fn)
                 self.textures[key][False] = self.pil_to_surface(pillow)
                 pillow.paste(round_mask, mask=round_mask)
                 self.textures[key][True] = self.pil_to_surface(pillow)
                 continue
             for sel in [True, False]:
                 if not has_plr_clr:
-                    pillow = Image.open('img/'+fn)
-                    pillow = self.get_colorized(pillow, sel)
-                    self.textures[key][sel] = self.pil_to_surface(pillow)
+                    texture = self.get_colorized(pillow, sel)
+                    self.textures[key][sel] = self.pil_to_surface(texture)
                     continue
                 self.textures[key][sel] = {}
                 for pkey, plr in self.CLRS.player.items():
-                    pillow = Image.open('img/'+fn)
-                    pillow = self.get_colorized(pillow, sel, plr)
-                    self.textures[key][sel][pkey] = self.pil_to_surface(pillow)
+                    texture = self.get_colorized(pillow, sel, plr)
+                    self.textures[key][sel][pkey] = self.pil_to_surface(texture)
 
     def pg_receive_bgr(self, bgr):
         self.board_bgr = self.pil_to_surface(bgr)
@@ -142,6 +146,14 @@ class InGame:
         if object.object_type in ('B', 'U'):
             texture = texture[object.owner.clr_choice]
         return texture
+
+    def get_grayicon(self, pillow):
+        v = self.vars
+        gray = pillow.convert('L')
+        alpha = pillow.split()[3]
+        gray = Image.merge('RGBA',(gray,gray,gray,alpha))
+        gray = gray.resize((v.cicon, v.cicon))
+        return self.pil_to_surface(gray)
 
     def get_colorized(self, texture, selected, own_clr=None):
         toreplace = self.CLRS.txtr_torepl
@@ -240,11 +252,23 @@ class InGame:
                 index += 1
         else:
             text = str(len(self.selection))+self.TEXT.objcount_suff
-            pass # TODO
+            section_w = v.cs_cols*(v.cicon+v.csmsp)-v.csmsp # Section width
+            cw = (v.emb_w-2*v.csh) # Central console width
+            i = 0
+            for obj in self.selection:
+                texture = self.icons_gray[obj.objkey]
+                x = (i% v.cs_cols)*(v.cicon+v.csmsp)
+                y = (i//v.cs_cols)*(v.cicon+v.csmsp)
+                x = x +cw//2 +v.csh -section_w//2
+                y = y +v.emb_h -v.cch +v.cs_ofs
+                self.screen.blit(texture, (x,y))
+                i += 1
+                if i > v.cs_rows*v.cs_cols:
+                    break
         text = font.render(text, False, v.white)
         crect = text.get_rect()
         crect.top = v.emb_h-v.cch
-        crect.centerx = v.emb_w//2
+        crect.centerx = (v.emb_w-2*v.csh)//2+v.csh
         self.screen.blit(text, crect)
 
     def pg_blit_resources(self):
