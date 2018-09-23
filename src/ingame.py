@@ -104,9 +104,9 @@ class InGame:
             'armor':    'icons/armor.png',
             'remain':   'icons/remain.png',
             # Commands
-            'stop':     'icons/cmd/stop.png',
-            'move':     'icons/cmd/move.png',
-            'train_worker':     'icons/cmd/train_worker.png',
+            'cancel':       'icons/cmd/cancel.png',
+            'move':         'icons/cmd/move.png',
+            'train_worker': 'icons/cmd/train_worker.png',
         }
         for key, fn in paths.items():
             pillow = Image.open('img/'+fn)
@@ -308,7 +308,7 @@ class InGame:
             y, x = x*v.scale*v.fct, y*v.scale*v.fct # NOTE: Reversed
             x, y = x+v.mmx, y+v.mmy
             nw = object.footprint.getNW()
-            radius = int(sqrt(nw.x**2+nw.y**2)*v.scale)
+            radius = int(sqrt(nw.x**2+nw.y**2)*v.scale)*3
             if radius == 0: radius = 1
             v.objs += [(int(x),int(y))]
             try: color = pg.Color(*object.owner.color)
@@ -427,6 +427,7 @@ class InGame:
         v = self.vars
         x, y = pos
         x, y = (x+v.brx)//v.fct, (y+v.bry)//v.fct
+        x, y = y, x # NOTE
         if self.pg_pointing_target:
             self.pg_set_target(x, y)
         else:
@@ -438,16 +439,15 @@ class InGame:
         keygroup = [o for o in self.selection if o.objkey == object.objkey]
         object, key, is_group = self.pg_pointing_for
         if is_group == 0:
-            pass # EXE
+            object.queue_cmd(key, pos=(x,y))
         elif is_group == 1:
             for o in keygroup:
-                pass # EXE
+                o.queue_cmd(key, pos=(x,y))
         elif is_group == 2:
             for o in self.selection:
-                pass # EXE
+                o.queue_cmd(key, pos=(x,y))
 
     def pg_select(self, x, y):
-        x, y = y, x # NOTE
         board = self.session.board
         shift = pg.key.get_mods() & pg.KMOD_LSHIFT
         if board.board[y][x].is_occupied:
@@ -500,7 +500,11 @@ class InGame:
         xx = v.emb_w - v.csh + v.cmdpad_ofx
         yy = v.emb_h - v.csh + v.cmdpad_ofy
         x, y = pos
-        x, y = (x-xx)//(v.cicon+v.cmdpad_spc), (y-yy)//(v.cicon+v.cmdpad_spc)
+        cell = v.cicon+v.cmdpad_spc
+        x, y = (x-xx)//cell, (y-yy)//cell
+        if x % cell > v.cicon or y % cell > v.cicon:
+            Log.debug('Clicked on spacing')
+            return # Clicked on spacing
         i = y*v.cmdpad_cols +x
         key = list(object.commands.keys())[i] # TODO: Improve this method
         cmd = object.commands[key]
@@ -510,4 +514,4 @@ class InGame:
             self.pg_pointing_for = object, key, is_group
             self.pg_pointing_target = True
         else:
-            pass # EXE
+            object.queue_cmd(key)

@@ -105,7 +105,7 @@ class Vector:
             if self.xdelta == 0 and self.ydelta > 0: degs += 180
             degs += 90
             if self.xdelta == 0 and self.ydelta == 0: degs = 0
-            self.angle = degs
+            self.angle = 360-degs%360
         else: self.angle = 0
 
     def get(self):

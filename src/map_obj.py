@@ -2,6 +2,30 @@ from src.geometry import Point, Vector
 from src.footprint import Footprint
 from src.weapon import Weapon
 
+import logging
+Log = logging.getLogger('MainLogger')
+
+class Command:
+    def __init__(self, method, *args ,dur, cost, group, gets_pt, **kwargs):
+        self.method = method
+        self.args = args
+        self.duration = dur
+        self.cost = cost
+        self.group = group
+        self.gets_pt = gets_pt
+        self.kwargs = kwargs
+
+    def instance(self, **kwargs):
+        kws = self.kwargs.copy()
+        kws.update(kwargs)
+        return Command(self.method, *self.args, dur=self.duration,
+            cost=self.cost, group=self.group, gets_pt=self.gets_pt, **kws)
+
+    def exe(self, object):
+        self.method(*self.args, **self.kwargs)
+
+
+
 class MapObject:
     '''MapObject is an abstract class used for anything placed on board
     Parameters:
@@ -86,6 +110,7 @@ class GameUnit(MapObject):
         self.kill_count = 0
         self.commands = {}
         self.planned = {}
+        self.make_cmd('cancel', self.cancel_all)
 
     def update(self, tick):
         '''Updates object state and executes planned actions'''
@@ -94,8 +119,9 @@ class GameUnit(MapObject):
         if tick not in self.planned.keys():
             return
         for cmd in self.planned[self.tick]:
-            pass # TODO
-        del self.planned[self.tick]
+            cmd.exe(self)
+        try: del self.planned[self.tick]
+        except KeyError: pass # canceled
 
     def get_attrs(self):
         '''Creates dict with data to put in console'''
@@ -128,6 +154,7 @@ class GameUnit(MapObject):
     def destroy(self, doer):
         '''Destroys object'''
         self.remove_footprint()
+        self.session.tell_update_bgr()
         owner.tell_destroyed(self)
         doer.add_kill_count()
         del self
@@ -154,6 +181,49 @@ class GameUnit(MapObject):
         '''Check distance to other MapObject'''
         return self.coords.get_vector(object.coords).magnitude
 
+    def make_cmd(self, key, method, *args, dur=1, cost=(0,0,0), group=0,
+        gets_pt=False, **kwargs):
+        '''Adds action triggerable by player
+        Parameters
+            key [str] Command key
+            method [func] Method to execute
+            dur [int](1) Action delay (duration) in ticks
+            cost [3-int](0,0,0) Action cost
+            group [int](0) If is 0 action in executed on single object. If is 1,
+                action is executed on objects of type same as 1st in selection
+                If 2, action is executed on every object in selection.
+            gets_pt [bool](False) If True, user must L-click board first
+                to point coords of target. Coords are passed under "pos" kw.
+            *args and **kwargs are passed to method
+        '''
+        cmd = Command(method, *args, dur=dur, cost=cost, group=group,
+            gets_pt=gets_pt, **kwargs)
+        self.commands[key] = cmd
+
+    def queue_cmd(self, key, **kwargs):
+        '''Adds action to "planned" queue'''
+        tick = self.tick
+        duration = self.commands[key].duration
+        instance = self.commands[key].instance(**kwargs)
+        try: self.planned[tick+duration] += [instance]
+        except KeyError: self.planned[tick+duration] = [instance]
+
+    # Commands
+
+    def cancel_all(self):
+        for action_lists in self.planned.values():
+            for action in action_lists:
+                self.owner.giveback(action.cost) # TODO
+        self.planned = {}
+
+    def train_unit(self, target_cls, *args):
+        unit = target_cls(self.session, self.coords, self.owner)
+        unit.coords = self.coords.copy()
+        delta = self.footprint.get_height()//2 + unit.footprint.get_height()//2
+        unit.coords.apply_vector(Vector(0, delta))
+        unit.dest = unit.coords.copy()
+        self.session.add_object(unit)
+
 
 
 class Building(GameUnit):
@@ -172,14 +242,35 @@ class Unit(GameUnit):
         self.speed = speed
         self.dest = coords
         self.object_type = 'U'
+        self.make_cmd('move', self.set_dest, gets_pt=True)
+
+    def update(self, tick):
+        '''Updates object state'''
+        super().update(tick)
+        # Move
+        if self.coords.get() != self.dest.get():
+            self.session.tell_update_bgr()
+            self.remove_footprint()
+            #Log.debug('{}\t{}'.format(self.coords.get(), self.dest.get()))
+            vector = Vector.from_abs(self.coords, self.dest)
+            if vector.magnitude <= self.speed:
+                self.coords = self.dest
+            else:
+                move_vector = Vector.from_rotation(vector.angle, self.speed)
+                Log.debug('{}\t{}'.format(int(vector.angle-move_vector.angle),
+                    vector.angle))
+                move_vector.round()
+                self.coords.apply_vector(move_vector)
+            self.apply_footprint()
 
     def set_dest(self, pos, *args):
         x, y = pos
         self.dest = Point(x, y)
 
-    def stop_all(self, *args):
-        super().stop_all()
+    def cancel_all(self, *args):
+        super().cancel_all()
         self.dest = self.coords
+
 
 
 class Resource(MapObject):

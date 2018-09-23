@@ -25,7 +25,7 @@ class Application(Interface):
         frames_count = 0
         prev_sec, prev_usec = 0, 0
         usec_elapsed = 0
-        ticks_per_sec = 50
+        ticks_per_sec = 30
         tick_length = 1/ticks_per_sec*1e6
         ticks = 0
         while not self.leaving:
@@ -70,6 +70,7 @@ class Application(Interface):
         self.in_session = True
         # Initializing required variables
         self.pg_pointing_target = False
+        self.pg_pointing_for = None
         self.selection = []
         # Starting session
         self.session = Session(self)

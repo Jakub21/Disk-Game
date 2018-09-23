@@ -12,7 +12,7 @@ class Session:
     '''
     def __init__(self, app_inst):
         Log.debug('Starting gamesession instance')
-        self.TICKS_PER_SEC = 50
+        self.TICKS_PER_SEC = 30
         self.app_inst = app_inst
         self.in_lobby = True
         self.players = []
@@ -91,6 +91,10 @@ class Session:
             self.is_paused = not self.is_paused
         else:
             self.is_paused = force
+
+    def tell_update_bgr(self):
+        '''Triggered by units when moved / destroyed'''
+        self.app_inst.ig_refresh_board = True
 
     def end(self):
         for player in self.players:
