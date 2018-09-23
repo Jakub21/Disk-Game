@@ -66,13 +66,13 @@ class Footprint:
         return Point(-w, -n)
 
     def get_width(self):
-        '''Returns difference in X axis between extreme points'''
+        '''Returns difference between extreme points in X axis'''
         xmin = min([p.x for p in self.points])
         xmax = max([p.x for p in self.points])
         return xmax - xmin
 
     def get_height(self):
-        '''Returns difference in Y axis between extreme points'''
+        '''Returns difference between extreme points in Y axis'''
         ymin = min([p.y for p in self.points])
         ymax = max([p.y for p in self.points])
         return ymax - ymin

@@ -13,6 +13,7 @@ Log = logging.getLogger('MainLogger')
 class Application(Interface):
     def __init__(self):
         self.leaving = False
+        self.in_session = False
         Log.info('Creating Application instance')
         self.load_config()
         super().__init__()
@@ -70,7 +71,6 @@ class Application(Interface):
         # Initializing required variables
         self.pg_pointing_target = False
         self.selection = []
-        self.pg_target = 0, 0
         # Starting session
         self.session = Session(self)
         path = self.CORE.mapsource_dir + variant + self.CORE.mapsource_suff
@@ -88,7 +88,7 @@ class Application(Interface):
         del self.vars
         del self.ig_refresh_board
         del self.pg_pointing_target
-        del self.pg_target
+        del self.pg_pointing_for
         del self.selection
         del self.minimap_bgr
         self.in_session = False

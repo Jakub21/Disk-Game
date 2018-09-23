@@ -1,4 +1,4 @@
-from math import sqrt, atan, pi
+from math import sqrt, atan, pi, sin, cos
 
 class Point:
     '''Point with X and Y coordinates'''
@@ -29,15 +29,15 @@ class Point:
 
     def get_vector(self, other):
         '''Returns vector between SELF and OTHER'''
-        return Vector.from_abs(self.get(), other.get())
+        return Vector.from_abs(self, other)
 
     def get_vector2(self, other):
         '''Returns vector between OTHER and SELF'''
-        return Vector.from_abs(other.get(), self.get())
+        return Vector.from_abs(other, self)
 
     def get_vector_orig(self):
         '''Returns vector between origin SELF and the Origin (Point(0,0))'''
-        return Vector.from_abs(self.get(), (0,0))
+        return Vector.from_abs(self, Point(0,0))
 
     def get(self):
         '''Returns 2-tuple with coordinates'''
@@ -68,8 +68,8 @@ class Vector:
     def from_abs(cls, init_pt, term_pt):
         '''Create a vector, basing on coords of its init and term points'''
         obj = cls.__new__(cls)
-        obj.xdelta = init_pt[0] - term_pt[0]
-        obj.ydelta = init_pt[1] - term_pt[1]
+        obj.xdelta = init_pt.x - term_pt.x
+        obj.ydelta = init_pt.y - term_pt.y
         obj.recalc()
         return obj
 
@@ -142,3 +142,7 @@ class Vector:
         self.xdelta = new_x[0] + new_y[0]
         self.ydelta = new_x[1] + new_y[1]
         self.recalc()
+
+    @staticmethod
+    def to_rads(degs):
+        return (degs*2*pi)/360

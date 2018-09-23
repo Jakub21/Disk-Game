@@ -7,7 +7,7 @@ class Player:
     def __init__(self, app_inst, username, password):
         self.app_inst = app_inst
         self.username = username
-        self.clr_choice = 'blue' # TODO
+        self.clr_choice = 'yellow' # TODO
         self.validate_login(password)
         del password
 
@@ -52,3 +52,27 @@ class Player:
         if self.buildings_count == 0:
             self.defeat()
         self.app_inst.ig_refresh_board = True
+
+    def pay(self, rsrc):
+        '''Subtracts given amount from account. Parameter is 3-tuple of ints'''
+        wood, iron, fuel = rsrc
+        if wood > self.rsrc_wood:
+            Log.info('Not enough wood')
+            return 'no_wood'
+        if iron > self.rsrc_iron:
+            Log.info('Not enough iron')
+            return 'no_iron'
+        if fuel > self.rsrc_fuel:
+            Log.info('Not enough fuel')
+            return 'no_fuel'
+        self.rsrc_wood -= wood
+        self.rsrc_iron -= iron
+        self.rsrc_fuel -= fuel
+        return True
+
+    def giveback(self, rsrc):
+        '''Give back some amount of resources. Use when something is canceled'''
+        wood, iron, fuel = rsrc
+        self.rsrc_wood += wood
+        self.rsrc_iron += iron
+        self.rsrc_fuel += fuel

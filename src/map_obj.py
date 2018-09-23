@@ -1,19 +1,24 @@
-from src.geometry import Point
+from src.geometry import Point, Vector
 from src.footprint import Footprint
 from src.weapon import Weapon
 
 class MapObject:
     '''MapObject is an abstract class used for anything placed on board
     Parameters:
-        board [Board] Board on which object is located
+        sess [Session] Game session
         coords [Point] Central point of this object's footprint
         ftprint [Footprint] A footprint this object occupies on board
     '''
-    def __init__(self, board, coords, fprint):
-        self.board = board
+    def __init__(self, sess, coords, fprint):
+        self.session = sess
         self.coords = coords
         self.footprint = fprint
         self.selected = False
+        self.tick = 0
+
+    def update(self, tick):
+        '''Keeps track of session tick'''
+        self.tick = tick
 
     def get_attrs(self):
         '''Creates dict with data to put in console'''
@@ -24,7 +29,7 @@ class MapObject:
         shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
         valid = True
         for pt in shifted.points:
-            cell = self.board.board[pt.y][pt.x]
+            cell = self.session.board.board[pt.y][pt.x]
             if cell.is_occupied:
                 valid = False
                 break
@@ -40,13 +45,13 @@ class MapObject:
         '''Sets cells' occupied flag to True with itself as occupier object'''
         shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
         for pt in shifted.points:
-            self.board.board[pt.y][pt.x].occupy(self)
+            self.session.board.board[pt.y][pt.x].occupy(self)
 
     def remove_footprint(self):
         '''Sets cells' occupied flag to False'''
         shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
         for pt in shifted.points:
-            self.board.board[pt.y][pt.x].release()
+            self.session.board.board[pt.y][pt.x].release()
 
     def select(self):
         self.selected = True
@@ -59,7 +64,7 @@ class MapObject:
 class GameUnit(MapObject):
     '''GameUnit represents objects steerable by player (Buildings and Units)
     Parameters:
-        board [Board] Board on which object is located
+        sess [Session] Game session
         heal_pts [int] Amount of heal points this object has
         max_heal_pts [int] Max amount of heal points this object can have
         owner [Player] Owner of this object
@@ -69,8 +74,8 @@ class GameUnit(MapObject):
             dealt to this object
         weapon [Weapon] weapon used by attack method
     '''
-    def __init__(self, board, coords, fprint, heal_pts, owner, armor, weapon):
-        super().__init__(board, coords, fprint)
+    def __init__(self, sess, coords, fprint, heal_pts, owner, armor, weapon):
+        super().__init__(sess, coords, fprint)
         self.heal_pts, self.max_heal_pts = heal_pts, heal_pts
         self.owner = owner
         self.armor = armor
@@ -79,6 +84,18 @@ class GameUnit(MapObject):
         if not weapon.is_placeholder:
             self.can_attack = True
         self.kill_count = 0
+        self.commands = {}
+        self.planned = {}
+
+    def update(self, tick):
+        '''Updates object state and executes planned actions'''
+        super().update(tick)
+        self.weapon.update()
+        if tick not in self.planned.keys():
+            return
+        for cmd in self.planned[self.tick]:
+            pass # TODO
+        del self.planned[self.tick]
 
     def get_attrs(self):
         '''Creates dict with data to put in console'''
@@ -121,12 +138,12 @@ class GameUnit(MapObject):
 
     def deal_damage(self, target):
         '''Deals damage to the target object'''
+        if not self.weapon.is_ready: return
         in_range = self.check_dist(target) <= self.weapon.range
         if in_range:
             target.recv_damage(self)
             return True
-        else:
-            return False
+        else: return False
 
     def add_kill(self):
         '''Increments kills count'''
@@ -141,23 +158,33 @@ class GameUnit(MapObject):
 
 class Building(GameUnit):
     '''Building Class'''
-    def __init__(self, board, coords, fprint, heal_pts, owner, armor, weapon):
-        super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
+    def __init__(self, sess, coords, fprint, heal_pts, owner, armor, weapon):
+        super().__init__(sess, coords, fprint, heal_pts, owner, armor, weapon)
         self.object_type = 'B'
 
 
 
 class Unit(GameUnit):
     '''Unit Class'''
-    def __init__(self, board, coords, fprint, heal_pts, owner, armor, weapon):
-        super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
+    def __init__(self, sess, coords, fprint, heal_pts, owner, armor, weapon,
+            speed):
+        super().__init__(sess, coords, fprint, heal_pts, owner, armor, weapon)
+        self.speed = speed
+        self.dest = coords
         self.object_type = 'U'
 
+    def set_dest(self, pos, *args):
+        x, y = pos
+        self.dest = Point(x, y)
+
+    def stop_all(self, *args):
+        super().stop_all()
+        self.dest = self.coords
 
 
 class Resource(MapObject):
-    def __init__(self, board, coords, fprint, rtype, rvalue):
-        super().__init__(board, coords, fprint)
+    def __init__(self, sess, coords, fprint, rtype, rvalue):
+        super().__init__(sess, coords, fprint)
         self.rtype = rtype
         self.rvalue = rvalue
         self.object_type = 'R'

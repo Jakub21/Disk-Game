@@ -51,7 +51,8 @@ class Worker(Unit):
         damage, rate, range = 1, 2, 2
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
+        speed = 3
+        super().__init__(board,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'worker'
 
 class Soldier(Unit):
@@ -62,7 +63,8 @@ class Soldier(Unit):
         damage, rate, range = 6, 2, 2
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
+        speed = 2
+        super().__init__(board,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'soldier'
 
 ################################

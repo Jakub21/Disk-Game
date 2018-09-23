@@ -29,6 +29,8 @@ class Session:
         self.tick += 1
         if self.tick % self.TICKS_PER_SEC == 0:
             self.elapsed += 1
+        for obj in self.objects:
+            obj.update(self.tick)
 
     def set_board(self, board):
         '''Adds board to session instance'''
@@ -41,11 +43,11 @@ class Session:
                 if 'rich' in key:
                     value = self.app_inst.GAME.rsrc_rich_value
                 if   'wood' in key:
-                    object = u.WoodField(self.board, point, value)
+                    object = u.WoodField(self, point, value)
                 elif 'iron' in key:
-                    object = u.IronField(self.board, point, value)
+                    object = u.IronField(self, point, value)
                 elif 'fuel' in key:
-                    object = u.FuelField(self.board, point, value)
+                    object = u.FuelField(self, point, value)
                 self.add_object(object)
 
     def add_object(self, object):
@@ -56,8 +58,9 @@ class Session:
             if object.object_type == 'B': object.owner.buildings_count += 1
             if object.object_type == 'U': object.owner.units_count += 1
             self.app_inst.ig_refresh_board = True
+            return True
         else:
-            pass # TODO
+            return False
 
     def add_player(self, player):
         '''Add player to game session'''
@@ -65,7 +68,7 @@ class Session:
         self.players += [player]
         player.add_to_session(self)
         coords = self.board.starting_positions[1] # TODO
-        self.add_object(u.CommandCenter(self.board, coords, player))
+        self.add_object(u.CommandCenter(self, coords, player))
 
     def get_color(self, player):
         '''Returns color from color-config'''

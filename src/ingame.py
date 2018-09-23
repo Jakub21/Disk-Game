@@ -8,7 +8,7 @@ from PIL import Image
 Log = logging.getLogger('MainLogger')
 
 class InGameVars:
-    '''Contains in-game UI variables and constants'''
+    '''Helper class used to easier manage interface variables and constants'''
     def __init__(self, a):
         self.emb_w,self.emb_h = 0,0 # Embed:Size
         self.brx, self.bry = 0, 0   # Board:Offset
@@ -32,6 +32,11 @@ class InGameVars:
         self.mm_bgx,self.mm_bgy=0,0 # Console:Minimap:BgrImg:Offset
         self.mm_vbw,self.mm_vbh=0,0 # Console:Minimap:ViewBox:Size
         self.mm_vbx,self.mm_vby=0,0 # Console:Minimap:ViewBox:Offset
+        self.cmdpad_ofx = 30        # Console:CommandPad:Offset:X
+        self.cmdpad_ofy = 30        # Console:CommandPad:Offset:Y
+        self.cmdpad_cols = 5        # Console:CommandPad:Columns
+        self.cmdpad_rows = 5        # Console:CommandPad:Rows
+        self.cmdpad_spc = 5         # Console:CommandPad:Spacing
         self.ct_x,self.ct_y=100,-18 # Console:Counter:Offset
         self.ccap_x = -48           # Console:Texture:Correction_Hor
         self.ccap_y = -28           # Console:Texture:Correction_Ver
@@ -98,6 +103,10 @@ class InGame:
             'heal':     'icons/heal.png',
             'armor':    'icons/armor.png',
             'remain':   'icons/remain.png',
+            # Commands
+            'stop':     'icons/cmd/stop.png',
+            'move':     'icons/cmd/move.png',
+            'train_worker':     'icons/cmd/train_worker.png',
         }
         for key, fn in paths.items():
             pillow = Image.open('img/'+fn)
@@ -197,8 +206,6 @@ class InGame:
         self.pg_blit_board()
         self.pg_blit_resources()
         self.pg_blit_console()
-        self.pg_blit_minimap()
-        self.pg_blit_counter()
 
     def pg_blit_board(self):
         v = self.vars
@@ -231,10 +238,17 @@ class InGame:
         # Center (skipped when selection is empty)
         if len(self.selection) != 0:
             self.pg_blit_cns_selection()
+            try:
+                if self.selection[0].owner == self.player:
+                    self.pg_blit_cns_cmd_pad(self.selection[0])
+            except AttributeError: pass
         # Console Caps (these constants only work with currently used textures)
         x = v.emb_w -v.csh +v.ccap_x
         self.screen.blit(self.ui_gfx['cns_cap_l'], (0, v.emb_h-v.csh+v.ccap_y))
         self.screen.blit(self.ui_gfx['cns_cap_r'], (x, v.emb_h-v.csh+v.ccap_y))
+        # Left-side elements
+        self.pg_blit_cns_minimap()
+        self.pg_blit_cns_counter()
 
     def pg_blit_cns_selection(self):
         v = self.vars
@@ -271,28 +285,7 @@ class InGame:
         crect.centerx = (v.emb_w-2*v.csh)//2+v.csh
         self.screen.blit(text, crect)
 
-    def pg_blit_resources(self):
-        v = self.vars
-        font = Font(self.CORE.font_family, self.CORE.fonts['resource'][0])
-        icon_h = v.ricon + v.rs_sp
-        icon_w = v.ricon + v.rs_sp
-        text_wood = font.render(str(self.player.rsrc_wood),False,v.white)
-        text_iron = font.render(str(self.player.rsrc_iron),False,v.white)
-        text_fuel = font.render(str(self.player.rsrc_fuel),False,v.white)
-        wood_rect = text_wood.get_rect()
-        iron_rect = text_iron.get_rect()
-        fuel_rect = text_fuel.get_rect()
-        for i, rect in enumerate([wood_rect, iron_rect, fuel_rect]):
-            rect.top = i*icon_h +2*v.rs_sp
-            rect.right = v.emb_w -icon_w -v.rs_sp
-        self.screen.blit(self.icons['wood'], (v.emb_w-icon_w, v.rs_sp))
-        self.screen.blit(text_wood, wood_rect)
-        self.screen.blit(self.icons['iron'], (v.emb_w-icon_w, v.rs_sp+icon_h))
-        self.screen.blit(text_iron, iron_rect)
-        self.screen.blit(self.icons['fuel'], (v.emb_w-icon_w, v.rs_sp+2*icon_h))
-        self.screen.blit(text_fuel, fuel_rect)
-
-    def pg_blit_minimap(self):
+    def pg_blit_cns_minimap(self):
         v = self.vars
         # Update vars
         v.mmx, v.mmy = v.csp, v.emb_h -v.csh +v.csp
@@ -322,7 +315,7 @@ class InGame:
             except AttributeError: color = v.white
             pg.draw.circle(self.screen, color, (int(x),int(y)), int(radius))
 
-    def pg_blit_counter(self):
+    def pg_blit_cns_counter(self):
         v = self.vars
         font = Font(self.CORE.font_family, self.CORE.fonts['counter'][0])
         x = v.ct_x
@@ -338,6 +331,38 @@ class InGame:
         rect.right, rect.top = x, y
         self.screen.blit(text, rect)
 
+    def pg_blit_cns_cmd_pad(self, object):
+        v = self.vars
+        xx = v.emb_w - v.csh + v.cmdpad_ofx
+        yy = v.emb_h - v.csh + v.cmdpad_ofy
+        i = 0
+        for key, cmd in object.commands.items():
+            x = (i% v.cmdpad_cols)*(v.cicon+v.cmdpad_spc) + xx
+            y = (i//v.cmdpad_cols)*(v.cicon+v.cmdpad_spc) + yy
+            icon = self.icons[key]
+            self.screen.blit(icon, (x,y))
+            i += 1
+
+    def pg_blit_resources(self):
+        v = self.vars
+        font = Font(self.CORE.font_family, self.CORE.fonts['resource'][0])
+        icon_h = v.ricon + v.rs_sp
+        icon_w = v.ricon + v.rs_sp
+        text_wood = font.render(str(self.player.rsrc_wood),False,v.white)
+        text_iron = font.render(str(self.player.rsrc_iron),False,v.white)
+        text_fuel = font.render(str(self.player.rsrc_fuel),False,v.white)
+        wood_rect = text_wood.get_rect()
+        iron_rect = text_iron.get_rect()
+        fuel_rect = text_fuel.get_rect()
+        for i, rect in enumerate([wood_rect, iron_rect, fuel_rect]):
+            rect.top = i*icon_h +2*v.rs_sp
+            rect.right = v.emb_w -icon_w -v.rs_sp
+        self.screen.blit(self.icons['wood'], (v.emb_w-icon_w, v.rs_sp))
+        self.screen.blit(text_wood, wood_rect)
+        self.screen.blit(self.icons['iron'], (v.emb_w-icon_w, v.rs_sp+icon_h))
+        self.screen.blit(text_iron, iron_rect)
+        self.screen.blit(self.icons['fuel'], (v.emb_w-icon_w, v.rs_sp+2*icon_h))
+        self.screen.blit(text_fuel, fuel_rect)
 
     ################################
     # PyGame events and actions
@@ -351,6 +376,9 @@ class InGame:
         rgn_board = pg.Rect((0, 0), (v.emb_w, v.emb_h-v.csh))
         rgn_notch = pg.Rect((v.csh, notch_n), (v.emb_w-2*v.csh, notch_h))
         rgn_mnmap = pg.Rect((v.mmx, v.mmy),(v.mmh, v.mmh))
+        rgn_cmdpd = pg.Rect(
+            (v.emb_w-v.csh+v.cmdpad_ofx,v.emb_h-v.csh+v.cmdpad_ofy,),
+            (v.csh-v.cmdpad_ofx,v.csh-v.cmdpad_ofy))
         # Check event type and handle it
         if evt.type == pg.MOUSEMOTION:
             pos = evt.pos
@@ -367,6 +395,9 @@ class InGame:
             if rgn_mnmap.collidepoint(pos):
                 if evt.button == 1:
                     self.pg_minimap_set((pos[0]-v.mmx, pos[1]-v.mmy))
+            if rgn_cmdpd.collidepoint(pos):
+                if evt.button == 1:
+                    self.pg_cmdpad_lclick(pos)
 
     def pg_board_drag(self, rel):
         v = self.vars
@@ -401,9 +432,19 @@ class InGame:
         else:
             self.pg_select(x, y)
 
-    def pg_set_target(self):
+    def pg_set_target(self, x, y):
         self.pg_pointing_target = False
-        self.pg_target = x, y
+        object = self.selection[0]
+        keygroup = [o for o in self.selection if o.objkey == object.objkey]
+        object, key, is_group = self.pg_pointing_for
+        if is_group == 0:
+            pass # EXE
+        elif is_group == 1:
+            for o in keygroup:
+                pass # EXE
+        elif is_group == 2:
+            for o in self.selection:
+                pass # EXE
 
     def pg_select(self, x, y):
         x, y = y, x # NOTE
@@ -450,3 +491,23 @@ class InGame:
         if oldlen != len(self.selection):
             l = [o.objkey for o in oldsel if o not in self.selection]
             Log.warn('Object type "'+l[0]+'" is not assigned to selection order')
+
+    def pg_cmdpad_lclick(self, pos):
+        object = self.selection[0]
+        keygroup = [o for o in self.selection if o.objkey == object.objkey]
+        group = self.selection
+        v = self.vars
+        xx = v.emb_w - v.csh + v.cmdpad_ofx
+        yy = v.emb_h - v.csh + v.cmdpad_ofy
+        x, y = pos
+        x, y = (x-xx)//(v.cicon+v.cmdpad_spc), (y-yy)//(v.cicon+v.cmdpad_spc)
+        i = y*v.cmdpad_cols +x
+        key = list(object.commands.keys())[i] # TODO: Improve this method
+        cmd = object.commands[key]
+        # TODO: Actually check group attribute
+        is_group = False
+        if cmd.gets_pt:
+            self.pg_pointing_for = object, key, is_group
+            self.pg_pointing_target = True
+        else:
+            pass # EXE
