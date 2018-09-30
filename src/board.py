@@ -1,5 +1,7 @@
 from src.geometry import Point
 from PIL import Image
+import numpy as np
+import src.jps as jps
 
 import logging
 Log = logging.getLogger('MainLogger')
@@ -14,7 +16,7 @@ class BoardCell:
         set to False
     '''
     def __init__(self, coords, crossable=True, buildable=True):
-        self.is_occupied = False
+        self.is_occupied = 0
         self.object = None
         if not crossable:
             buildable = False
@@ -22,14 +24,16 @@ class BoardCell:
         self.buildable = buildable
         self.coords = coords
 
-    def occupy(self, object):
-        '''Add cell occupier (map-object)'''
-        self.is_occupied = True
+    def _occupy(self, object):
+        '''Adds cell occupier (map-object)
+        If object is an unit, is_occupied attr is set to 1, else to 2
+        '''
+        self.is_occupied = 1 if object.object_type == 'U' else 2
         self.object = object
 
-    def release(self):
-        '''Remove cell occupier (map-object)'''
-        self.is_occupied = False
+    def _release(self):
+        '''Removes cell occupier (map-object)'''
+        self.is_occupied = 0
         self.object = None
 
 
@@ -43,6 +47,30 @@ class Board:
         self.starting_positions = []
         self.objects_toplace = []
         self.load(path)
+        self.init_finder_field()
+        self.finder = jps.Finder(self)
+
+    def init_finder_field(self):
+        width, height = self.size
+        self.finder_field = np.array([[0 if self.board[y][x].crossable and
+            self.board[y][x].is_occupied < 2 else -1 for x in range(width)]
+            for y in range(height)])
+
+    def occupy(self, coords, object):
+        x, y = coords
+        self.board[y][x]._occupy(object)
+        if object.object_type != 'U':
+            self.finder_field[y, x] = 0
+
+    def release(self, coords):
+        x, y = coords
+        object = self.board[y][x].object
+        self.board[y][x]._release()
+        if object.object_type != 'U':
+            self.finder_field[y][x] = 1
+
+    def find(self, orig, dest):
+        return self.finder.find(self.finder_field, self.size, orig, dest)
 
     def load(self, path):
         Log.debug('Loading map from file')

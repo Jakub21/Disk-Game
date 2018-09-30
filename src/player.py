@@ -7,7 +7,7 @@ class Player:
     def __init__(self, app_inst, username, password):
         self.app_inst = app_inst
         self.username = username
-        self.clr_choice = 'yellow' # TODO
+        self.clr_choice = 'blue' # TODO
         self.validate_login(password)
         del password
 

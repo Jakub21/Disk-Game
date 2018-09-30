@@ -1,6 +1,7 @@
 from src.geometry import Point, Vector
 from src.footprint import Footprint
 from src.weapon import Weapon
+from src.queue import Queue
 
 import logging
 Log = logging.getLogger('MainLogger')
@@ -48,9 +49,10 @@ class MapObject:
         '''Creates dict with data to put in console'''
         return {}
 
-    def check_footprint(self):
+    def check_footprint(self, alt=None):
         '''Checks if object can be placed at current coordinate'''
-        shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
+        coords = self.coords if alt is None else alt
+        shifted = self.footprint.get_shifted(coords.get_vector_orig())
         valid = True
         for pt in shifted.points:
             cell = self.session.board.board[pt.y][pt.x]
@@ -69,13 +71,13 @@ class MapObject:
         '''Sets cells' occupied flag to True with itself as occupier object'''
         shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
         for pt in shifted.points:
-            self.session.board.board[pt.y][pt.x].occupy(self)
+            self.session.board.occupy((pt.x,pt.y), self)
 
     def remove_footprint(self):
         '''Sets cells' occupied flag to False'''
         shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
         for pt in shifted.points:
-            self.session.board.board[pt.y][pt.x].release()
+            self.session.board.release((pt.x, pt.y))
 
     def select(self):
         self.selected = True
@@ -240,36 +242,55 @@ class Unit(GameUnit):
             speed):
         super().__init__(sess, coords, fprint, heal_pts, owner, armor, weapon)
         self.speed = speed
-        self.dest = coords
+        self.dest = [coords]
         self.object_type = 'U'
+        self.path_pts = Queue()
         self.make_cmd('move', self.set_dest, gets_pt=True)
 
     def update(self, tick):
         '''Updates object state'''
         super().update(tick)
         # Move
-        if self.coords.get() != self.dest.get():
+        dest = self.dest.get()
+        if self.coords.get() != dest:
             self.session.tell_update_bgr()
-            self.remove_footprint()
-            #Log.debug('{}\t{}'.format(self.coords.get(), self.dest.get()))
-            vector = Vector.from_abs(self.coords, self.dest)
-            if vector.magnitude <= self.speed:
-                self.coords = self.dest
-            else:
-                move_vector = Vector.from_rotation(vector.angle, self.speed)
-                Log.debug('{}\t{}'.format(int(vector.angle-move_vector.angle),
-                    vector.angle))
-                move_vector.round()
-                self.coords.apply_vector(move_vector)
-            self.apply_footprint()
+        total_cost = 0
+        self.remove_footprint()
+        while self.coords.get() != dest and total_cost < self.speed:
+            prev = self.coords.copy()
+            self.coords = self.path_pts.pop()
+            self.coords = Point(*self.coords)
+            cost = 1
+            if self.coords.x != prev.x and self.coords.y != prev.y:
+                cost = 1.4 # Diagonal
+            if not self.check_footprint():
+                if self.check_footprint(alt=Point(prev.x, self.coords.y)):
+                    self.coords = Point(prev.x, self.coords.y)
+                    cost = 1.4 # Diagonal denied
+                elif self.check_footprint(alt=Point(self.coords.x, prev.y)):
+                    self.coords = Point(prev.x, self.coords.y)
+                    cost = 1.4 # Diagonal denied
+                else:
+                    self.coords = prev
+                    Log.info('Could not make step')
+                    break
+            total_cost += cost
+        self.apply_footprint()
 
     def set_dest(self, pos, *args):
-        x, y = pos
-        self.dest = Point(x, y)
+        self.dest = Point(*pos)
+        self.path_pts.add_many(self.session.board.find(self.coords, self.dest))
+
+    #def add_dest(self, pos, *args):
+    #    dest = Point(*pos)
+    #    coords, dest = self.coords.get(), self.dest.get()
+    #    self.path_pts.add_many(self.session.board.find(dest, self.dest))
+    #    self.dest = dest
 
     def cancel_all(self, *args):
         super().cancel_all()
         self.dest = self.coords
+        self.path_pts.set_empty()
 
 
 

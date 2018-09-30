@@ -17,7 +17,7 @@ class CommandCenter(Building):
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
         super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
-        self.make_cmd('train_worker', self.train_unit, Worker, dur=100)
+        self.make_cmd('train_worker', self.train_unit, Worker, dur=60)
         self.objkey = 'command'
 
 class Wall(Building):

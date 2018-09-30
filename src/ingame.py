@@ -66,7 +66,7 @@ class InGame:
     def pg_init_embed(self):
         Log.debug('Initializing embed')
         os.environ['SDL_WINDOWID'] = str(self.pg_embed.winfo_id())
-        if platform.system == 'Windows':
+        if platform.system() == 'Windows':
             os.environ['SDL_VIDEODRIVER'] = 'windib'
         self.screen = pg.display.set_mode(tuple(self.CORE.window_size))
         pg.font.init()
