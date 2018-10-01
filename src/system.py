@@ -1,4 +1,4 @@
-import numpy as np
+from PIL import Image
 import sys
 import traceback as trb
 import os
@@ -6,6 +6,18 @@ from argparse import ArgumentParser
 
 import logging
 Log = logging.getLogger('MainLogger')
+
+def dump_array(array, vals={1:(255,255,255),0:(0,0,0)}, default=(250,0,0),
+               filename='array_dump.png'):
+    # TODO: Consider using PIL.Image.from_array
+    img = Image.new('RGB', size)
+    pixels = img.load()
+    h, w = array.shape
+    for y in range(h):
+        for x in range(w):
+            try: pixels[y, x] = vals[array[y,x]]
+            except KeyError: pixels[y, x] = default
+    img.save(filename)
 
 def to_ns(input_dict):
     '''Converts dictionaries to namespaces'''
