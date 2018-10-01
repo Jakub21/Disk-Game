@@ -57,17 +57,17 @@ class Board:
             for y in range(height)])
 
     def occupy(self, coords, object):
-        x, y = coords
+        x, y = coords.get()
         self.board[y][x]._occupy(object)
         if object.object_type != 'U':
-            self.finder_field[y, x] = 0
+            self.finder_field[y, x] = -1
 
     def release(self, coords):
-        x, y = coords
+        x, y = coords.get()
         object = self.board[y][x].object
         self.board[y][x]._release()
         if object.object_type != 'U':
-            self.finder_field[y][x] = 1
+            self.finder_field[y][x] = 0
 
     def find(self, fp, orig, dest):
         return self.finder.find(self.finder_field, self.size, fp, orig, dest)

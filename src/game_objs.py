@@ -18,6 +18,7 @@ class CommandCenter(Building):
         weapon = Weapon(damage, rate, range, ignore_armor)
         super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
         self.make_cmd('train_worker', self.train_unit, Worker, dur=60)
+        self.make_cmd('train_soldier', self.train_unit, Soldier, dur=90)
         self.objkey = 'command'
 
 class Wall(Building):
@@ -52,7 +53,7 @@ class Worker(Unit):
         damage, rate, range = 1, 2, 2
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        speed = 3
+        speed = 1.7
         super().__init__(board,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'worker'
 
@@ -64,7 +65,7 @@ class Soldier(Unit):
         damage, rate, range = 6, 2, 2
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        speed = 2
+        speed = 1.4
         super().__init__(board,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'soldier'
 

@@ -71,13 +71,13 @@ class MapObject:
         '''Sets cells' occupied flag to True with itself as occupier object'''
         shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
         for pt in shifted.points:
-            self.session.board.occupy((pt.x,pt.y), self)
+            self.session.board.occupy(pt, self)
 
     def remove_footprint(self):
         '''Sets cells' occupied flag to False'''
         shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
         for pt in shifted.points:
-            self.session.board.release((pt.x, pt.y))
+            self.session.board.release(pt)
 
     def select(self):
         self.selected = True
@@ -262,7 +262,7 @@ class Unit(GameUnit):
             self.coords = Point(*self.coords)
             cost = 1
             if self.coords.x != prev.x and self.coords.y != prev.y:
-                cost = 1.4 # Diagonal
+                cost = 1.7 # Diagonal (sqrt(2) caused units to be too fast)
             total_cost += cost
         self.apply_footprint()
 

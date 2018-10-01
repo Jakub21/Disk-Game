@@ -107,6 +107,7 @@ class InGame:
             'cancel':       'icons/cmd/cancel.png',
             'move':         'icons/cmd/move.png',
             'train_worker': 'icons/cmd/train_worker.png',
+            'train_soldier':'icons/cmd/train_soldier.png',
         }
         for key, fn in paths.items():
             pillow = Image.open('img/'+fn)

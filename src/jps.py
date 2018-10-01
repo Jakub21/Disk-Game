@@ -2,6 +2,8 @@ from scipy.ndimage.morphology import binary_dilation as dilate
 import numpy as np
 from src.queue import Queue
 
+from datetime import datetime
+
 import logging
 Log = logging.getLogger('MainLogger')
 
@@ -26,8 +28,11 @@ class Finder:
         #    Log.error('There is an obstacle in orig/goal point')
         #    return # TODO
         self.field = field.copy()
+        time_a = datetime.now()
         self.field = dilate(self.field, fp).astype(int)
         self.field[self.field == 1] = -1
+        time_b = datetime.now()
+        Log.debug('Dilation time: {}'.format(time_b - time_a))
         self.orig, self.goal = orig, goal
         self.size = size
         self.queue = Queue()
@@ -105,7 +110,7 @@ class Finder:
         cost = get(f, point)
         delta_x, delta_y = delta
         while True:
-            cost += 1.4
+            cost += 1.7 # Replaced sqrt(2)
             cx, cy = current
             current = cx+delta_x, cy+delta_y
             cx, cy = current # TODO: Check
