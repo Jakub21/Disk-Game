@@ -38,7 +38,10 @@ class Application(Interface):
                 self.pg_handle(evt)
             if self.in_ig_view:
                 if sec != prev_sec:
-                    Log.info('FPS: {}\tTICKS: {}'.format(frames_count,ticks))
+                    _ticks = ticks-30
+                    _ticks = ('{} Behind'.format(abs(_ticks)) if _ticks < 0 \
+                    else '{} Ahead'.format(_ticks)) if _ticks != 0 else 'OK'
+                    Log.info('FPS: {} \tTicks: {}'.format(frames_count,_ticks))
                     #Log.debug(self.vars)
                     ticks = 0
                     frames_count = 0

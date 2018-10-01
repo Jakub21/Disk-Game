@@ -258,8 +258,12 @@ class Unit(GameUnit):
         self.remove_footprint()
         while self.coords.get() != dest and total_cost < self.speed:
             prev = self.coords.copy()
-            self.coords = self.path_pts.pop()
-            self.coords = Point(*self.coords)
+            self.coords = Point(*self.path_pts.pop())
+            if not self.check_footprint():
+                self.path_pts.add(self.coords.get(),-1)
+                self.coords = prev
+                self.apply_footprint()
+                return
             cost = 1
             if self.coords.x != prev.x and self.coords.y != prev.y:
                 cost = 1.7 # Diagonal (sqrt(2) caused units to be too fast)
@@ -270,6 +274,7 @@ class Unit(GameUnit):
         self.dest = Point(*pos)
         fp = self.footprint.make_array()
         pts = self.session.board.find(fp, self.coords, self.dest)
+        self.path_pts.set_empty()
         self.path_pts.add_many(pts)
 
     #def add_dest(self, pos, *args):
