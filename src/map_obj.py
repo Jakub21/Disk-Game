@@ -273,7 +273,8 @@ class Unit(GameUnit):
     def set_dest(self, pos, *args):
         self.dest = Point(*pos)
         fp = self.footprint.make_array()
-        pts = self.session.board.find(fp, self.coords, self.dest)
+        new_dest, pts = self.session.board.find(fp, self.coords, self.dest)
+        self.dest = Point(*new_dest) # Dest is updated when old was at obstacle
         self.path_pts.set_empty()
         self.path_pts.add_many(pts)
 

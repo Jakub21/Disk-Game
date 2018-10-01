@@ -20,25 +20,19 @@ class Finder:
         self.board = board
 
     def find(self, field, size, fp, orig, goal):
-        v = self.board.session.app_inst.vars
-        self.brx, self.bry = v.brx, v.bry
-        _set, get = self._set, self.get
+        _set, get, check = self._set, self.get, self.check
         orig, goal = orig.get(), goal.get()
-        #if not self.get(field, orig) or not self.get(field, goal):
-        #    Log.error('There is an obstacle in orig/goal point')
-        #    return # TODO
         self.field = field.copy()
-        time_a = datetime.now()
         self.field = dilate(self.field, fp).astype(int)
         self.field[self.field == 1] = -1
-        time_b = datetime.now()
-        Log.debug('Dilation time: {}'.format(time_b - time_a))
+        f = self.field
+        if check(f, goal):
+            goal = self._find_nearest_clear(f, goal)
         self.orig, self.goal = orig, goal
         self.size = size
         self.queue = Queue()
         self.queue.add(orig)
         self.sources = self.get_2d(None, self.size)
-        f = self.field
         s = self.sources
         _set(f, self.goal, -3)
         _set(s, self.orig, -2)
@@ -60,7 +54,18 @@ class Finder:
             except FoundPath:
                 break
         nodes = self._find_nodes()
-        return self._reconstruct(nodes)
+        return goal, self._reconstruct(nodes)
+
+    def _find_nearest_clear(self, field, point):
+        Log.debug('Goal cell has an obstacle, looking for nearest clear cell')
+        xx, yy = point
+        r = 0
+        while True:
+            r += 1
+            for y in range(yy-r, yy+r+1):
+                for x in range(xx-r, xx+r+1):
+                    if not self.check(field,(x,y)):
+                        if self.in_bounds(field, (x,y)): return (x, y)
 
     def _exp_card(self, point, delta):
         #Log.debug('Card {} from {}'.format(delta, point))
@@ -77,7 +82,6 @@ class Finder:
             cx, cy = current # TODO: Check
             if current == self.goal:
                 _set(s, current, point)
-                Log.debug('Found path')
                 raise FoundPath()
             if check(f, current):
                 return False
@@ -116,7 +120,6 @@ class Finder:
             cx, cy = current # TODO: Check
             if current == self.goal:
                 _set(s, current, point)
-                Log.debug('Found path')
                 raise FoundPath()
             if check(f, current):
                 return False
@@ -191,6 +194,12 @@ class Finder:
     # TODO: Convert this to separate class if it would not affect performance
     # A new instance of this class would be made at every new move command [?]
     # Field-array related methods
+
+    @staticmethod
+    def in_bounds(array, point):
+        h, w = array.shape
+        x, y = point
+        return (y >= 0 and y < h and x >= 0 and x < w)
 
     @staticmethod
     def check(array, point, val=-1):
