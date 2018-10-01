@@ -263,23 +263,14 @@ class Unit(GameUnit):
             cost = 1
             if self.coords.x != prev.x and self.coords.y != prev.y:
                 cost = 1.4 # Diagonal
-            if not self.check_footprint():
-                if self.check_footprint(alt=Point(prev.x, self.coords.y)):
-                    self.coords = Point(prev.x, self.coords.y)
-                    cost = 1.4 # Diagonal denied
-                elif self.check_footprint(alt=Point(self.coords.x, prev.y)):
-                    self.coords = Point(prev.x, self.coords.y)
-                    cost = 1.4 # Diagonal denied
-                else:
-                    self.coords = prev
-                    Log.info('Could not make step')
-                    break
             total_cost += cost
         self.apply_footprint()
 
     def set_dest(self, pos, *args):
         self.dest = Point(*pos)
-        self.path_pts.add_many(self.session.board.find(self.coords, self.dest))
+        fp = self.footprint.make_array()
+        pts = self.session.board.find(fp, self.coords, self.dest)
+        self.path_pts.add_many(pts)
 
     #def add_dest(self, pos, *args):
     #    dest = Point(*pos)

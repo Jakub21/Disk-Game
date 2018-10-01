@@ -1,3 +1,4 @@
+from scipy.ndimage.morphology import binary_dilation as dilate
 import numpy as np
 from src.queue import Queue
 
@@ -16,7 +17,7 @@ class Finder:
     def __init__(self, board):
         self.board = board
 
-    def find(self, field, size, orig, goal):
+    def find(self, field, size, fp, orig, goal):
         v = self.board.session.app_inst.vars
         self.brx, self.bry = v.brx, v.bry
         _set, get = self._set, self.get
@@ -25,6 +26,8 @@ class Finder:
         #    Log.error('There is an obstacle in orig/goal point')
         #    return # TODO
         self.field = field.copy()
+        self.field = dilate(self.field, fp).astype(int)
+        self.field[self.field == 1] = -1
         self.orig, self.goal = orig, goal
         self.size = size
         self.queue = Queue()
@@ -55,7 +58,7 @@ class Finder:
         return self._reconstruct(nodes)
 
     def _exp_card(self, point, delta):
-        Log.debug('Card {} from {}'.format(delta, point))
+        #Log.debug('Card {} from {}'.format(delta, point))
         _set, get, check = self._set, self.get, self.check
         f = self.field
         s = self.sources
@@ -94,7 +97,7 @@ class Finder:
                     return True
 
     def _exp_diag(self, point, delta):
-        Log.debug('Diag {} from {}'.format(delta, point))
+        #Log.debug('Diag {} from {}'.format(delta, point))
         _set, get, check = self._set, self.get, self.check
         f = self.field
         s = self.sources

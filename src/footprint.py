@@ -1,4 +1,5 @@
-from src.geometry import Point
+from src.geometry import Point, Vector
+import numpy as np
 
 import logging
 Log = logging.getLogger('MainLogger')
@@ -58,6 +59,17 @@ class Footprint:
             pt2.apply_vector(vector)
             shifted_pts += [pt2]
         return Footprint(shifted_pts)
+
+    def make_array(self):
+        '''Creates array with all points'''
+        w = min([p.x for p in self.points])
+        n = min([p.y for p in self.points])
+        pts = self.get_shifted(Vector(-w, -n)).points
+        width, height = self.get_width(), self.get_height()
+        array = np.zeros((height+1, width+1))
+        for pt in pts:
+            array[pt.y, pt.x] = 1
+        return array
 
     def getNW(self):
         '''Returns most northward and westward coordinates'''

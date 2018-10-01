@@ -69,8 +69,8 @@ class Board:
         if object.object_type != 'U':
             self.finder_field[y][x] = 1
 
-    def find(self, orig, dest):
-        return self.finder.find(self.finder_field, self.size, orig, dest)
+    def find(self, fp, orig, dest):
+        return self.finder.find(self.finder_field, self.size, fp, orig, dest)
 
     def load(self, path):
         Log.debug('Loading map from file')
