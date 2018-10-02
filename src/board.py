@@ -52,22 +52,29 @@ class Board:
 
     def init_finder_field(self):
         width, height = self.size
-        self.finder_field = np.array([[0 if self.board[y][x].crossable and
-            self.board[y][x].is_occupied < 2 else -1 for x in range(width)]
+        self.finder_field = np.array([[0 if self.get((x,y)).crossable and
+            self.get((x,y)).is_occupied < 2 else -1 for x in range(width)]
             for y in range(height)])
 
     def occupy(self, coords, object):
-        x, y = coords.get()
-        self.board[y][x]._occupy(object)
+        try: x, y = coords.get() # Point object
+        except: x, y = coords # Point (tuple)
+        self.get((x,y))._occupy(object)
         if object.object_type != 'U':
             self.finder_field[y, x] = -1
 
     def release(self, coords):
-        x, y = coords.get()
-        object = self.board[y][x].object
-        self.board[y][x]._release()
+        try: x, y = coords.get() # Point object
+        except: x, y = coords # Point (tuple)
+        object = self.get(coords).object
+        self.get(coords)._release()
         if object.object_type != 'U':
             self.finder_field[y][x] = 0
+
+    def get(self, coords):
+        try: x, y = coords.get() # Point object
+        except: x, y = coords # Point (tuple)
+        return self.board[y][x]
 
     def find(self, fp, orig, dest):
         return self.finder.find(self.finder_field, self.size, fp, orig, dest)
@@ -107,7 +114,7 @@ class Board:
         colors = self.CLRS.background
         for y in range(height):
             for x in range(width):
-                cell = self.board[y][x]
+                cell = self.get((x,y))
                 if cell.crossable and cell.buildable:
                     color = colors[0]
                 else:
@@ -127,7 +134,7 @@ class Board:
         colors = self.CLRS.background
         for y in range(height):
             for x in range(width):
-                cell = self.board[y][x]
+                cell = self.get((x,y))
                 if cell.crossable and cell.buildable:
                     color = colors[0]
                 else:

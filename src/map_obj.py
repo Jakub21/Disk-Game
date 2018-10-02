@@ -49,13 +49,17 @@ class MapObject:
         '''Creates dict with data to put in console'''
         return {}
 
+    def get_address(self):
+        '''Returns a string with object's address (use to distinguish objects)'''
+        return '<'+str(self)[-11:] # TODO
+
     def check_footprint(self, alt=None):
         '''Checks if object can be placed at current coordinate'''
         coords = self.coords if alt is None else alt
         shifted = self.footprint.get_shifted(coords.get_vector_orig())
         valid = True
         for pt in shifted.points:
-            cell = self.session.board.board[pt.y][pt.x]
+            cell = self.session.board.get(pt)
             if cell.is_occupied:
                 valid = False
                 break

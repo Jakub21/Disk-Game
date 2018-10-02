@@ -257,6 +257,8 @@ class InGame:
         nn, ww = v.emb_h -v.cch + v.cs_ofs, v.emb_w//2 - 2*v.cicon
         if len(self.selection) == 1:
             text = self.TEXT.mapobj[self.selection[0].objkey]
+            if self.debug:
+                text += self.selection[0].get_address()
             index = 0
             for key, value in self.selection[0].get_attrs().items():
                 icon = self.icons[key]
@@ -446,8 +448,8 @@ class InGame:
     def pg_select(self, x, y):
         board = self.session.board
         shift = pg.key.get_mods() & pg.KMOD_LSHIFT
-        if board.board[y][x].is_occupied:
-            object = board.board[y][x].object
+        if board.get((x,y)).is_occupied:
+            object = board.get((x,y)).object
             if shift:
                 if object.selected:
                     object.deselect()
