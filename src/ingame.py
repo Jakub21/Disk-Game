@@ -436,17 +436,12 @@ class InGame:
 
     def pg_set_target(self, x, y):
         self.pg_pointing_target = False
-        object = self.selection[0]
-        keygroup = [o for o in self.selection if o.objkey == object.objkey]
         object, key, is_group = self.pg_pointing_for
-        if is_group == 0:
+        if is_group:
+            for o in object:
+                o.queue_cmd(key, pos=(x,y))
+        else:
             object.queue_cmd(key, pos=(x,y))
-        elif is_group == 1:
-            for o in keygroup:
-                o.queue_cmd(key, pos=(x,y))
-        elif is_group == 2:
-            for o in self.selection:
-                o.queue_cmd(key, pos=(x,y))
 
     def pg_select(self, x, y):
         board = self.session.board
@@ -494,9 +489,8 @@ class InGame:
             Log.warn('Object type "'+l[0]+'" is not assigned to selection order')
 
     def pg_cmdpad_lclick(self, pos):
-        object = self.selection[0]
+        object = self.selection[0] # TODO: Enable selected objs traversal
         keygroup = [o for o in self.selection if o.objkey == object.objkey]
-        group = self.selection
         v = self.vars
         xx = v.emb_w - v.csh + v.cmdpad_ofx
         yy = v.emb_h - v.csh + v.cmdpad_ofy
@@ -507,12 +501,20 @@ class InGame:
             Log.debug('Clicked on spacing')
             return # Clicked on spacing
         i = y*v.cmdpad_cols +x
-        key = list(object.commands.keys())[i] # TODO: Improve this method
+        try: key = list(object.commands.keys())[i] # TODO: Improve this method
+        except IndexError: return
         cmd = object.commands[key]
-        # TODO: Actually check group attribute
-        is_group = False
-        if cmd.gets_pt:
-            self.pg_pointing_for = object, key, is_group
-            self.pg_pointing_target = True
+        if cmd.group == 0:
+            if cmd.gets_pt:
+                self.pg_pointing_for = object, key, False
+                self.pg_pointing_target = True
+            else:
+                object.queue_cmd(key)
         else:
-            object.queue_cmd(key)
+            group = keygroup if cmd.group == 1 else self.selection
+            if cmd.gets_pt:
+                self.pg_pointing_for = group, key, True
+                self.pg_pointing_target = True
+            else:
+                for o in group:
+                    o.queue_cmd(key)

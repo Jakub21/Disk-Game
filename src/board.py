@@ -135,7 +135,6 @@ class Board:
                     else: color = colors[2]
                 pixels[y, x] = tuple(color)
         pillow = pillow.resize((int(width*scale), int(height*scale)))
-        Log.debug('MM bgr size: '+str(pillow.size))
         return pillow
 
     @staticmethod

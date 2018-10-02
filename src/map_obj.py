@@ -112,7 +112,7 @@ class GameUnit(MapObject):
         self.kill_count = 0
         self.commands = {}
         self.planned = {}
-        self.make_cmd('cancel', self.cancel_all)
+        self.make_cmd('cancel', self.cancel_all, group=2)
 
     def update(self, tick):
         '''Updates object state and executes planned actions'''
@@ -205,7 +205,8 @@ class GameUnit(MapObject):
     def queue_cmd(self, key, **kwargs):
         '''Adds action to "planned" queue'''
         tick = self.tick
-        duration = self.commands[key].duration
+        try: duration = self.commands[key].duration
+        except KeyError: return # Commands for units groups
         instance = self.commands[key].instance(**kwargs)
         try: self.planned[tick+duration] += [instance]
         except KeyError: self.planned[tick+duration] = [instance]
@@ -245,7 +246,8 @@ class Unit(GameUnit):
         self.dest = [coords]
         self.object_type = 'U'
         self.path_pts = Queue()
-        self.make_cmd('move', self.set_dest, gets_pt=True)
+        self.make_cmd('cancel', self.cancel_all, group=2)
+        self.make_cmd('move', self.set_dest, gets_pt=True, group=2)
 
     def update(self, tick):
         '''Updates object state'''
@@ -262,8 +264,7 @@ class Unit(GameUnit):
             if not self.check_footprint():
                 self.path_pts.add(self.coords.get(),-1)
                 self.coords = prev
-                self.apply_footprint()
-                return
+                break
             cost = 1
             if self.coords.x != prev.x and self.coords.y != prev.y:
                 cost = 1.7 # Diagonal (sqrt(2) caused units to be too fast)
