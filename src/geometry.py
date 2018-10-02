@@ -93,20 +93,16 @@ class Vector:
     def recalc(self):
         '''Recalculate magnitude and angle of the Vector'''
         self.magnitude = sqrt(self.xdelta**2 + self.ydelta**2)
-        if self.xdelta != 0:
-            try: slope = self.xdelta / self.ydelta
-            except ZeroDivisionError:
-                if self.xdelta < 0: slope = float('inf')
-                elif self.xdelta > 0: slope = -float('inf')
-                else: slope = 0
-            degs = 360*atan(slope)/2*pi
-            if self.xdelta < 0 and self.ydelta > 0: degs = 180 - abs(degs)
-            if self.xdelta > 0 and self.ydelta > 0: degs = 180 + abs(degs)
-            if self.xdelta == 0 and self.ydelta > 0: degs += 180
-            degs += 90
-            if self.xdelta == 0 and self.ydelta == 0: degs = 0
-            self.angle = 360-degs%360
-        else: self.angle = 0
+        try: angle = atan(self.ydelta/self.xdelta)
+        except ZeroDivisionError:
+            angle = 180 if self.xdelta < 0 else 0
+        angle = round(self.to_degs(angle), 2)
+        if self.xdelta < 0: angle = 180+angle # diff but angle is negative
+        if self.xdelta > 0 and self.ydelta < 0:
+            angle = 360+angle # diff but angle is negative
+        if self.xdelta == 0:
+            angle = (90 if self.ydelta > 0 else 270) if self.ydelta != 0 else 0
+        self.angle = angle
 
     def get(self):
         return self.xdelta, self.ydelta
@@ -146,3 +142,7 @@ class Vector:
     @staticmethod
     def to_rads(degs):
         return (degs*2*pi)/360
+
+    @staticmethod
+    def to_degs(rads):
+        return (rads*360)/(2*pi)
