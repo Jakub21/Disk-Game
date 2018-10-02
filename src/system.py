@@ -63,4 +63,6 @@ def configure_argparser():
     parser = ArgumentParser('Editor')
     parser.add_argument('-v', '--verbose',
         help='Changes logging level to debug', action='store_true')
+    parser.add_argument('-d', '--debug',
+        help='Enables debug info in game', action='store_true')
     return parser

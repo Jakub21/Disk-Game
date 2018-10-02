@@ -11,7 +11,8 @@ import logging
 Log = logging.getLogger('MainLogger')
 
 class Application(Interface):
-    def __init__(self):
+    def __init__(self, debug=False):
+        self.debug = debug
         self.leaving = False
         self.in_session = False
         Log.info('Creating Application instance')

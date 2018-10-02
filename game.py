@@ -7,8 +7,8 @@ from datetime import datetime
 import logging
 Log = logging.getLogger('MainLogger')
 
-def main():
-    app = Application()
+def main(debug):
+    app = Application(debug)
 
 if __name__ == '__main__':
     parser = internal.configure_argparser()
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     internal.configure_logger(args.verbose)
     time_start = datetime.now()
     Log.info('Starting script ({})'.format(time_start))
-    main()
+    main(args.debug)
     time_end = datetime.now()
     drt = time_end - time_start
     secs = drt.seconds%60
