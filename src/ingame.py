@@ -508,6 +508,8 @@ class InGame:
             Log.warn('Object type "'+l[0]+'" is not assigned to selection order')
 
     def pg_cmdpad_lclick(self, pos):
+        if len(self.selection) == 0:
+            return
         object = self.selection[0] # TODO: Enable selected objs traversal
         keygroup = [o for o in self.selection if o.objkey == object.objkey]
         v = self.vars
