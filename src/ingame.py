@@ -15,6 +15,7 @@ class InGameVars:
         self.brw, self.brh = 0, 0   # Board:Size
         self.mrg = 100              # Board:BlitMargin
         self.fct = a.CORE.cell_size # Board:ResizeFactor
+        self.trg_nw = 20            # HUD:TargetIndicator:Size (halved)
         self.cch = 200              # Console:Size:CenterHeight
         self.csh = 320              # Console:Size:SidesHeight
         self.cicon = 40             # Console:Selection:IconSize
@@ -87,6 +88,7 @@ class InGame:
         paths = {
             'cns_cap_l':    'ui/console_cap_l.png',
             'cns_cap_r':    'ui/console_cap_r.png',
+            'target':       'ui/target.png',
         }
         for key, fn in paths.items():
             pillow = Image.open('img/'+fn)
@@ -226,6 +228,19 @@ class InGame:
                 xx, yy = x-nw.x*v.fct-v.brx, y-nw.y*v.fct-v.bry
                 texture = self.pg_get_texture(object)
                 self.screen.blit(texture, (xx,yy))
+            if object in self.selection:
+                try:
+                    target = object.dest
+                    if target.get() != object.coords.get():
+                        x, y = target.get()
+                        y, x = x*v.fct, y*v.fct # NOTE: Reversed coordinates
+                        if x > x_rng[0] and x < x_rng[1] and y > y_rng[0] and \
+                                y < y_rng[1]:
+                            nw = v.trg_nw
+                            xx, yy = x-nw-v.brx, y-nw-v.bry
+                            texture = self.ui_gfx['target']
+                            self.screen.blit(texture, (xx, yy))
+                except AttributeError: pass
 
     def pg_blit_console(self):
         v = self.vars
