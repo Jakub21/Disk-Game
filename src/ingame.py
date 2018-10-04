@@ -110,6 +110,8 @@ class InGame:
             'move':         'icons/cmd/move.png',
             'train_worker': 'icons/cmd/train_worker.png',
             'train_soldier':'icons/cmd/train_soldier.png',
+            'build_wall':   'icons/cmd/build_wall.png',
+            'build_tower':  'icons/cmd/build_tower.png',
         }
         for key, fn in paths.items():
             pillow = Image.open('img/'+fn)

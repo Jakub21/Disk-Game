@@ -1,5 +1,5 @@
 '''Create units, buildings and other map-objects usable in-game'''
-
+from src.geometry import Point
 from src.weapon import Weapon
 from src.map_obj import Building, Unit, Resource
 from src.footprint import Footprint
@@ -55,7 +55,14 @@ class Worker(Unit):
         weapon = Weapon(damage, rate, range, ignore_armor)
         speed = 1.7
         super().__init__(board,coords,fprint,heal_pts,owner,armor,weapon,speed)
+        self.make_cmd('build_wall', self.build, Wall, gets_pt=True)
+        self.make_cmd('build_tower', self.build, Tower, gets_pt=True)
         self.objkey = 'worker'
+
+    def build(self, target_cls, pos, *args):
+        coords = Point(*pos)
+        building = target_cls(self.session, coords, self.owner)
+        self.session.add_object(building)
 
 class Soldier(Unit):
     def __init__(self, board, coords, owner):
