@@ -83,6 +83,15 @@ class MapObject:
         for pt in shifted.points:
             self.session.board.release(pt)
 
+    def get_fp_occupiers(self):
+        shifted = self.footprint.get_shifted(self.coords.get_vector_orig())
+        occupiers = []
+        for pt in shifted.points:
+            cell = self.session.board.get(pt)
+            if cell.is_occupied and cell.object is not self:
+                occupiers += [cell.object]
+        return occupiers
+
     def select(self):
         self.selected = True
 
@@ -247,28 +256,45 @@ class Unit(GameUnit):
             speed):
         super().__init__(sess, coords, fprint, heal_pts, owner, armor, weapon)
         self.speed = speed
-        self.dest = [coords]
+        self.dest = coords
         self.object_type = 'U'
+        self.stepping_away = False
+        self.stepaway = self.coords.copy()
         self.path_pts = Queue()
         self.make_cmd('cancel', self.cancel_all, group=2)
         self.make_cmd('move', self.set_dest, gets_pt=True, group=2)
 
     def update(self, tick):
         '''Updates object state'''
-        super().update(tick)
+        if tick is not None:
+            super().update(tick)
         # Move
         dest = self.dest.get()
         if self.coords.get() != dest:
             self.session.tell_update_bgr()
         total_cost = 0
         self.remove_footprint()
+        if self.coords.get() == self.stepaway.get():
+            self.stepping_away = False
         while self.coords.get() != dest and total_cost < self.speed:
             prev = self.coords.copy()
             self.coords = Point(*self.path_pts.pop())
+            lndist = Vector.from_abs(self.coords, self.dest).magnitude
             if not self.check_footprint():
-                self.path_pts.add(self.coords.get(),-1)
-                self.coords = prev
-                break
+                if lndist > 15 or self.stepping_away:
+                    self.path_pts.add(self.coords.get(), -1)
+                    occupiers = self.get_fp_occupiers()
+                    for o in occupiers:
+                        if o.stepping_away:
+                            continue
+                        vector = Vector.from_abs(prev, self.coords)
+                        o.request_stepaway(self, vector)
+                    self.coords = prev
+                    break
+                else:
+                    self.coords = prev
+                    self.dest = self.coords.copy()
+                    break
             cost = 1
             if self.coords.x != prev.x and self.coords.y != prev.y:
                 cost = 1.7 # Diagonal (sqrt(2) caused units to be too fast)
@@ -276,18 +302,51 @@ class Unit(GameUnit):
         self.apply_footprint()
 
     def set_dest(self, pos, *args):
-        self.dest = Point(*pos)
+        try: self.dest = Point(*pos) # Can be tuple
+        except TypeError: self.dest = pos # or Point instance
+        Log.debug('Setting dest of {}: {}'.format(self.get_address(),self.dest))
         fp = self.footprint.make_array()
         new_dest, pts = self.session.board.find(fp, self.coords, self.dest)
         self.dest = Point(*new_dest) # Dest is updated when old was at obstacle
         self.path_pts.set_empty()
         self.path_pts.add_many(pts)
 
-    #def add_dest(self, pos, *args):
-    #    dest = Point(*pos)
-    #    coords, dest = self.coords.get(), self.dest.get()
-    #    self.path_pts.add_many(self.session.board.find(dest, self.dest))
-    #    self.dest = dest
+    def add_dest(self, pos, *args):
+        try: _dest = Point(*pos) # Can be tuple
+        except TypeError: _dest = pos # or Point instance
+        fp = self.footprint.make_array()
+        new_dest, pts = self.session.board.find(fp, self.dest, _dest)
+        self.dest = Point(*new_dest)
+        self.path_pts.add_many(pts)
+
+    def request_stepaway(self, actor, avect):
+        if actor.owner is not self.owner:
+            return
+        vector = Vector.from_abs(actor.coords, self.coords)
+        # Find direction
+        direction = False # False = Left, True = Right
+        if vector.angle > avect.angle:
+            direction = True
+        if abs(vector.angle - avect.angle) > 180:
+            direction = not direction
+        diff = -90 if direction else 90
+        # Calculate distance
+        dist = max(actor.footprint.get_width(), actor.footprint.get_height())//2
+        dist += max(self.footprint.get_width(), self.footprint.get_height())//2
+        target_vect = Vector.from_rotation(avect.angle+diff, dist)
+        target_vect.round()
+        # Acting
+        target = self.coords.copy()
+        target.apply_vector(target_vect)
+        Log.debug('{} accepted stepaway from {} ({} -> {})'.format( \
+            self.get_address(), actor.get_address(), self.coords, target))
+        prev_target = self.dest.copy()
+        self.set_dest(target)
+        if prev_target.get() != self.coords.get():
+            self.add_dest(prev_target)
+        self.stepping_away = True
+        self.stepaway = target
+
 
     def cancel_all(self, *args):
         super().cancel_all()
