@@ -347,11 +347,12 @@ class Unit(GameUnit):
         self.stepping_away = True
         self.stepaway = target
 
-
     def cancel_all(self, *args):
         super().cancel_all()
         self.dest = self.coords
         self.path_pts.set_empty()
+        self.session.tell_update_bgr()
+        self.session.tell_cancel_pointing()
 
 
 

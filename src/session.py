@@ -93,8 +93,14 @@ class Session:
             self.is_paused = force
 
     def tell_update_bgr(self):
-        '''Triggered by units when moved / destroyed'''
+        '''Triggered by units when background has to be updated
+            etc. when moved / destroyed'''
         self.app_inst.ig_refresh_board = True
+
+    def tell_cancel_pointing(self):
+        '''Trigger to cancel pointing for command'''
+        self.app_inst.pg_pointing_target = False
+        self.app_inst.pg_pointing_for = None
 
     def end(self):
         for player in self.players:
