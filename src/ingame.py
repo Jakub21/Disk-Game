@@ -412,6 +412,7 @@ class InGame:
             pos = evt.pos
             if rgn_board.collidepoint(pos) or rgn_notch.collidepoint(pos):
                 if evt.button == 1: self.pg_board_lclick(pos)
+                if evt.button == 3: self.pg_board_rclick(pos)
             if rgn_mnmap.collidepoint(pos):
                 if evt.button == 1:
                     self.pg_minimap_set((pos[0]-v.mmx, pos[1]-v.mmy))
@@ -488,6 +489,29 @@ class InGame:
         for obj in self.selection:
             obj.deselect()
         self.selection = []
+
+    def pg_board_rclick(self, pos):
+        v = self.vars
+        x, y = pos
+        x, y = (x+v.brx)//v.fct, (y+v.bry)//v.fct
+        x, y = y, x # NOTE
+        if self.pg_pointing_target: # Cancel pointing
+            Log.debug('Cancelling target')
+            self.pg_pointing_target = False
+            self.pg_pointing_for = None
+        else:
+            if len(self.selection) == 0: return
+            shift = pg.key.get_mods() & pg.KMOD_LSHIFT
+            if shift:
+                Log.debug('RMB: adding dest')
+                for o in self.selection:
+                    try: o.add_dest((x,y)) # Add destination
+                    except AttributeError: pass
+            else:
+                Log.debug('RMB: setting dest')
+                for o in self.selection:
+                    try: o.set_dest((x,y)) # Set destination
+                    except AttributeError: pass
 
     def sort_selection(self):
         oldlen = len(self.selection)
