@@ -7,7 +7,22 @@ import logging
 Log = logging.getLogger('MainLogger')
 
 class Command:
-    def __init__(self, method, *args ,dur, cost, group, gets_pt, **kwargs):
+    '''MapObject's Command
+    Constructor parameters:
+        method [func] Method to execute
+        queueable [bool](True) If True method is executed in next tick, else
+            added to object's queue
+        dur [int](1) Action duration in ticks
+        cost [3-int](0,0,0) Action cost
+        group [int](0) If is 0 action in executed on single object. If is 1,
+            action is executed on objects of type same as 1st in selection
+            If 2, action is executed on every object in selection.
+        gets_pt [bool](False) If True, user must select point on board first.
+            Coords are passed in "pos" keyword.
+        *args and **kwargs are passed to method
+    '''
+    def __init__(self, method, *args, queuable=True, dur=1, cost=(0,0,0),
+            group=0, gets_pt=False, **kwargs):
         self.method = method
         self.args = args
         self.duration = dur
@@ -125,7 +140,7 @@ class GameUnit(MapObject):
         self.kill_count = 0
         self.commands = {}
         self.planned = {}
-        self.make_cmd('cancel', self.cancel_all, group=2)
+        self.commands['cancel'] = Command(self.cancel_all, group=2)
 
     def update(self, tick):
         '''Updates object state and executes planned actions'''
@@ -134,7 +149,9 @@ class GameUnit(MapObject):
         if tick not in self.planned.keys():
             return
         for cmd in self.planned[self.tick]:
-            cmd.exe(self)
+            can_afford = cmd.cost!=(0,0,0) and self.owner.pay(cmd.cost) is True
+            if can_afford or cmd.cost == (0,0,0):
+                cmd.exe(self)
         try: del self.planned[self.tick]
         except KeyError: pass # canceled
 
@@ -196,25 +213,6 @@ class GameUnit(MapObject):
         '''Check distance to other MapObject'''
         return self.coords.get_vector(object.coords).magnitude
 
-    def make_cmd(self, key, method, *args, dur=1, cost=(0,0,0), group=0,
-        gets_pt=False, **kwargs):
-        '''Adds action triggerable by player
-        Parameters
-            key [str] Command key
-            method [func] Method to execute
-            dur [int](1) Action delay (duration) in ticks
-            cost [3-int](0,0,0) Action cost
-            group [int](0) If is 0 action in executed on single object. If is 1,
-                action is executed on objects of type same as 1st in selection
-                If 2, action is executed on every object in selection.
-            gets_pt [bool](False) If True, user must L-click board first
-                to point coords of target. Coords are passed under "pos" kw.
-            *args and **kwargs are passed to method
-        '''
-        cmd = Command(method, *args, dur=dur, cost=cost, group=group,
-            gets_pt=gets_pt, **kwargs)
-        self.commands[key] = cmd
-
     def queue_cmd(self, key, **kwargs):
         '''Adds action to "planned" queue'''
         tick = self.tick
@@ -261,8 +259,8 @@ class Unit(GameUnit):
         self.stepping_away = False
         self.stepaway = self.coords.copy()
         self.path_pts = Queue()
-        self.make_cmd('cancel', self.cancel_all, group=2)
-        self.make_cmd('move', self.set_dest, gets_pt=True, group=2)
+        self.commands['cancel'] = Command(self.cancel_all, group=2)
+        self.commands['move'] = Command(self.set_dest, gets_pt=True, group=2)
 
     def update(self, tick):
         '''Updates object state'''

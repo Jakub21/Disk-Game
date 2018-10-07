@@ -1,7 +1,7 @@
 '''Create units, buildings and other map-objects usable in-game'''
 from src.geometry import Point
 from src.weapon import Weapon
-from src.map_obj import Building, Unit, Resource
+from src.map_obj import Command, Building, Unit, Resource
 from src.footprint import Footprint
 
 ################################
@@ -17,8 +17,10 @@ class CommandCenter(Building):
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
         super().__init__(board, coords, fprint, heal_pts, owner, armor, weapon)
-        self.make_cmd('train_worker', self.train_unit, Worker, dur=60)
-        self.make_cmd('train_soldier', self.train_unit, Soldier, dur=90)
+        self.commands['train_worker'] = Command(self.train_unit, Worker,
+            cost=(50,0,0))
+        self.commands['train_soldier'] = Command(self.train_unit, Soldier,
+            cost=(100,50,0))
         self.objkey = 'command'
 
 class Wall(Building):
@@ -55,8 +57,10 @@ class Worker(Unit):
         weapon = Weapon(damage, rate, range, ignore_armor)
         speed = 1.7
         super().__init__(board,coords,fprint,heal_pts,owner,armor,weapon,speed)
-        self.make_cmd('build_wall', self.build, Wall, gets_pt=True)
-        self.make_cmd('build_tower', self.build, Tower, gets_pt=True)
+        self.commands['build_wall'] = Command(self.build, Wall,
+            cost=(200,0,0), gets_pt=True)
+        self.commands['build_tower'] = Command(self.build, Tower,
+            cost=(250,100,0), gets_pt=True)
         self.objkey = 'worker'
 
     def build(self, target_cls, pos, *args):
