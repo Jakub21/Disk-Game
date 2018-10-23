@@ -1,57 +1,68 @@
 import tkinter as tk
 from tkinter import ttk
+import yaml
 import src.ui_elems as el
-from src.ingame import InGame
+import src.system as internal
+from src.board import Board
+from src.session import Session
+from src.player import Player
 
 import logging
 Log = logging.getLogger('MainLogger')
 
 ALL = (tk.N, tk.S, tk.E, tk.W)
 
-class Interface(InGame):
-    def __init__(self):
-        self.root = tk.Tk()
-        self.in_ig_view = False
+class Launcher:
+    def __init__(self, is_debug=False):
+        Log.info('Starting launcher')
+        self.leaving = False
+        self.debug = is_debug
+        self.starting_game = False
+        self.load_config()
         self.ui_init()
-        self.ui_set_binds()
-        self.ui_toggle_fullscreen(force=self.is_fullscreen)
         self.ui_tk_make_styles()
         self.ui_tk_make_sframe()
         self.ui_tk_make_views()
-        self.ui_make_ingame_view()
-        super().__init__()
         self.ui_show_view('app_title')
 
-    ################################
-    # Basic UI methods
+    def loop(self):
+        self.root.update()
+
+    def start_game(self, board_name):
+        Log.debug('Starting game')
+        ####  TEMP  ####
+        board_path = self.CORE.board_dir + board_name + self.CORE.board_suff
+        self.session = Session(self)
+        board = Board(self.session, board_path)
+        self.session.set_board(board)
+        self.player = Player('Local', 'temp_pwd')
+        self.session.add_player(self.player)
+        ################
+        self.starting_game = True
+
+    def load_config(self):
+        '''Loads configuration files'''
+        Log.debug('Loading config files')
+        self.CORE = internal.to_ns(yaml.load(open('cnf/core.yml', 'r')))
+        self.TEXT = internal.to_ns(yaml.load(open('cnf/text.yml', 'r')))
+        self.CLRS = internal.to_ns(yaml.load(open('cnf/clrs.yml', 'r')))
+        self.GAME = internal.to_ns(yaml.load(open('cnf/game.yml', 'r')))
+        self.LNCH = internal.to_ns(yaml.load(open('cnf/lnch.yml', 'r')))
+        self.USER = internal.to_ns(yaml.load(open('cnf/user.yml', 'r')))
+        self.KBDS = internal.to_ns(yaml.load(open('cnf/kbds.yml', 'r')))
 
     def ui_init(self):
         '''Initializes tkinter UI'''
         Log.debug('Initializing UI')
+        self.root = tk.Tk()
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         self.root.title(self.TEXT.window_title)
         self.root.iconbitmap(self.CORE.icon_path)
-        w, h = self.CORE.window_size
+        w, h = self.LNCH.window_size
         self.root.geometry('{}x{}'.format(w, h))
-        self.is_fullscreen = self.CORE.use_fullscreen
         self.widgets = {}
-
-    def ui_set_binds(self):
-        '''Creates binds and protocols'''
-        Log.debug('Setting binds and protocols')
-        self.root.bind('<F11>', self.ui_toggle_fullscreen)
-        #self.root.bind('<F10>', self.ui_ig_toggle_menu) # NOTE
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
-
-    def ui_toggle_fullscreen(self, *args, force=None):
-        '''Toggles fullscreen (If force param is defined sets fs as defined)'''
-        Log.debug('Toggling fullscreen mode')
-        if force is None:
-            self.is_fullscreen = not self.is_fullscreen
-            state = self.is_fullscreen
-        else: state = force
-        self.root.attributes('-fullscreen', state)
 
     def ui_get_font(self, key):
         '''Returns font configuration tuple'''
@@ -60,9 +71,6 @@ class Interface(InGame):
         height, is_bold = self.CORE.fonts[key]
         if is_bold: return (font_family, height, 'bold')
         else: return (font_family, height)
-
-    ################################
-    # Helper methods
 
     def ui_get_version_text(self):
         '''Returns version text based on config'''
@@ -95,7 +103,7 @@ class Interface(InGame):
         '''Creates TTK styles '''
         Log.debug('Creating TTK styles')
         newstyle = ttk.Style()
-        for k, v in self.CORE.styles.items():
+        for k, v in self.LNCH.styles.items():
             Log.debug('Creating style: {}'.format(k))
             if len(v) == 3:
                 newstyle.configure(k, foreground=v[0], background=v[1],
@@ -135,7 +143,7 @@ class Interface(InGame):
         # pl_single view
         self.views['pl_single'] = ttk.Frame(self.sframe, style='std.TFrame')
         self.widgets['btt_pl_single_start'] = el.Button(self.views['pl_single'],
-            'std.TButton', self.TEXT.btt_start, self.session_start, 'first')
+            'std.TButton', self.TEXT.btt_start, self.start_game, 'first')
             # TEMP,TODO: This button should be binded to method that checks map
             # choice of user
         self.widgets['btt_pl_single_back'] = el.Button(self.views['pl_single'],
@@ -144,40 +152,18 @@ class Interface(InGame):
         self.widgets['btt_pl_single_back'].grid(**self.ui_get_grid(0,1))
         self.ui_rowcol_config(self.views['pl_single'])
 
-    def ui_make_ingame_view(self):
-        '''Creates in-game view (contains PyGame embed target frame)'''
-        Log.debug('Creating embed view')
-        self.ig_view = ttk.Frame(self.root, style='std.TFrame')
-        self.pg_embed = ttk.Frame(self.ig_view, style='std.TFrame')
-        self.pg_embed.grid(**self.ui_get_grid(0,0, padding=0))
-        self.pg_embed.bind('<Configure>', self.pg_update_size)
-        self.ui_rowcol_config(self.ig_view, [1], [1])
-
     def ui_show_view(self, page_key):
         '''Shows chosen view from views dictionary'''
-        if page_key == 'game':
-            self.ui_show_ig_view()
-        else:
-            if self.in_ig_view: ui_hide_ig_view()
-            try:
-                for key, view in self.views.items():
-                    view.grid_forget()
-                self.views[page_key].grid(**self.ui_get_grid(1,1))
-            except KeyError:
-                Log.error('Invalid page key "{}"'.format(page_key))
-                self.quit()
+        try:
+            for key, view in self.views.items():
+                view.grid_forget()
+            self.views[page_key].grid(**self.ui_get_grid(1,1))
+        except KeyError:
+            Log.error('Invalid page key "{}"'.format(page_key))
+            self.quit()
 
-    def ui_show_ig_view(self):
-        '''Switch from in-game view to menu-like view'''
-        Log.debug('Switching view mode')
-        self.in_ig_view = True
-        self.sframe.grid_forget()
-        self.ig_view.grid(sticky=ALL)
-        self.pg_prepare_minimap()
-
-    def ui_hide_ig_view(self):
-        '''Switch from menu-like view to in-game view'''
-        Log.debug('Switching view mode')
-        self.in_ig_view = False
-        self.ig_view.grid_forget()
-        self.sframe.grid(sticky=ALL)
+    def quit(self):
+        '''Application quit method'''
+        Log.info('Leaving app')
+        self.leaving = True
+        self.root.destroy()

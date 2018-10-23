@@ -21,14 +21,13 @@ class Weapon:
         if damage == 0:
             self.is_placeholder = True
 
-    def shoot(self, target):
-        '''Deal damage to target MapObject'''
+    def cooldown(self, target):
+        '''Deal damage to target object'''
         if self.is_ready:
-            target.damage(self.damage)
             self.cooldown = self.rate
 
-    def get_cooldown_frac(self):
-        '''Get percentage of cooldown (low - almsot ready, high - just shot)'''
+    def get_cd_frac(self):
+        '''Get percentage of cooldown (low - almost ready, high - just used)'''
         return self.cooldown / self.rate
 
     def update(self):

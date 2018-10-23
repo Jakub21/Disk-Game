@@ -1,148 +1,175 @@
-from src.geometry import Point
+from numpy import array
+from random import randrange as rand
 from PIL import Image
-import numpy as np
-import src.jps as jps
+from src.geometry import Point, Vector
 
 import logging
 Log = logging.getLogger('MainLogger')
 
-class BoardCell:
-    '''Board Cell
-    Init Parameters:
-        coords [Point] location on board
-        crossable [bool](True) specifies if units can move here
-        buildable [bool](True) specifies if buildings can be built here
-    Note that if cell's crossable flag is False, buildable flag is automatically
-        set to False
-    '''
-    def __init__(self, coords, crossable=True, buildable=True):
-        self.is_occupied = 0
-        self.object = None
-        if not crossable:
-            buildable = False
-        self.crossable = crossable
-        self.buildable = buildable
+class Cell:
+    '''Class represents board cell'''
+    def __init__(self, coords, crossable, size, var_count):
         self.coords = coords
+        self.crossable = crossable
+        self.size = size
+        self.occupied = 0
+        self.sqr_occupier = None
+        self.subcells = [[None for x in range(size)] for y in range(size)]
+        self.variant = 'free' if self.crossable else 'obst'
+        self.variant += str(rand(0, var_count))
+        self.orig_variant = self.variant # When occupied, variant is changed
 
-    def _occupy(self, object):
-        '''Adds cell occupier (map-object)
-        If object is an unit, is_occupied attr is set to 1, else to 2
-        '''
-        self.is_occupied = 1 if object.object_type == 'U' else 2
-        self.object = object
+    def get_object(self, subcoords):
+        if self.sqr_occupier is not None:
+            return self.sqr_occupier
+        x, y = subcoords
+        xx, yy = int(x*self.size), int(y*self.size)
+        return self.subcells[yy][xx]
 
-    def _release(self):
-        '''Removes cell occupier (map-object)'''
-        self.is_occupied = 0
-        self.object = None
+    def occupy(self, object):
+        if not self.crossable: return False
+        if object.footprint.is_square:
+            if self.occupied != 0: return False
+            self.occupied = 2
+            self.sqr_occupier = object
+            return True
+        else:
+            return self.partial_occupy(object)
+
+    def partial_occupy(self, object):
+        if not self.crossable: return False
+        if self.occupied == 2: return False
+        size = object.footprint.size / 2 # Radius
+        for x in range(self.size):
+            for y in range(self.size):
+                sx, sy = self.coords.get()
+                coords = Point(sx+(x/self.size), sy+(y/self.size))
+                v = Vector.from_abs(object.coords, coords)
+                if v.magnitude > size:
+                    continue
+                if self.subcells[y][x] is not None:
+                    return False
+                self.subcells[y][x] = object
+        self.occupied = 1
+        return True
+
+    def release(self, object):
+        if object.footprint.is_square:
+            if self.sqr_occupier is not object:
+                return
+            self.occupied = 0
+            self.sqr_occupier = None
+        else:
+            return self.partial_release(object)
+
+    def partial_release(self, object):
+        size = self.size
+        rad = object.footprint.size
+        delta = object.coords - self.coords
+        for x in range(size):
+            for y in range(size):
+                if self.subcells[y][x] == object:
+                    self.subcells[y][x] = None
+        ncnt = sum(1 for row in self.subcells for e in row if e is None)
+        self.occupied = 0 if ncnt == pow(size, 2) else 1
 
 
 
 class Board:
     def __init__(self, session, path):
-        '''Loads Board data from map file'''
+        Log.debug('Creating board')
+        self.variant = 'grassland' # TODO
         self.session = session
-        self.CLRS = self.session.app_inst.CLRS
-        self.CORE = self.session.app_inst.CORE
-        self.starting_positions = []
-        self.objects_toplace = []
-        self.load(path)
-        self.init_finder_field()
-        self.finder = jps.Finder(self)
-
-    def init_finder_field(self):
-        width, height = self.size
-        self.finder_field = np.array([[0 if self.get((x,y)).crossable and
-            self.get((x,y)).is_occupied < 2 else -1 for x in range(width)]
-            for y in range(height)])
-
-    def occupy(self, coords, object):
-        try: x, y = coords.get() # Point object
-        except: x, y = coords # Point (tuple)
-        self.get((x,y))._occupy(object)
-        if object.object_type != 'U':
-            self.finder_field[y, x] = -1
-
-    def release(self, coords):
-        try: x, y = coords.get() # Point object
-        except: x, y = coords # Point (tuple)
-        object = self.get(coords).object
-        self.get(coords)._release()
-        if object.object_type != 'U':
-            self.finder_field[y][x] = 0
+        self.CORE = session.app.CORE
+        self.CLRS = session.app.CLRS
+        self.starts = []
+        self.toplace = []
+        self.load_png(path)
 
     def get(self, coords):
         try: x, y = coords.get() # Point object
         except: x, y = coords # Point (tuple)
-        return self.board[y][x]
+        return self.cells[y][x]
 
-    def find(self, fp, orig, dest):
-        return self.finder.find(self.finder_field, self.size, fp, orig, dest)
+    def get_object(self, coords):
+        try: x, y = coords.get() # Point object
+        except: x, y = coords # Point (tuple)
+        sx, sy = round((x%1), 3), round((y%1), 3)
+        subs = self.CORE.sub_per_cell
+        cell = self.cells[int(y)][int(x)]
+        return cell.get_object((x%1,y%1))
 
-    def load(self, path):
-        Log.debug('Loading map from file')
-        defines = {k:tuple(v) for k,v in self.CLRS.map_src.items()}
-        pillow = Image.open(path)
+    def apply_fp(self, object):
+        fp = object.footprint
+        success = True
+        if fp.is_square:
+            vector = Vector.from_point(object.coords)
+            for pt in fp.points:
+                pt = pt + vector
+                if not self.get(pt).occupy(object):
+                    success = False
+            if not success:
+                for pt in fp.points:
+                    pt = pt + vector
+                    self.get(pt).release(object)
+        else:
+            Log.debug('Placing round object at {}'.format(object.coords))
+            cx, cy = object.coords.get()
+            radius = fp.size / 2
+            gr = radius / self.CORE.sub_per_cell
+            for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
+                if not success: break
+                for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
+                    if not self.get((x,y)).occupy(object):
+                        Log.debug('Can not place, spot taken')
+                        success = False
+                        break
+            ####  TEMP  ####
+            #Log.debug('Placement subcells')
+            #for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
+            #    for suby in range(self.CORE.sub_per_cell):
+            #        for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
+            #            for subx in range(self.CORE.sub_per_cell):
+            #                print(end='X ' if (self.get((x,y)).subcells[suby][subx] is not None) else '- ')
+            #            print(end='  ')
+            #        print()
+            #    print()
+            ################
+            if not success:
+                for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
+                    for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
+                        self.get((x,y)).release(object)
+        return True
+
+    def get_cell_gfx(self, coords):
+        try: x, y = coords.get() # Point object
+        except: x, y = coords # Point (tuple)
+        return self.cgroups[y][x].variant
+
+    def load_png(self, filename):
+        defines = {k:tuple(v) for k,v in self.CLRS.board_file_defines.items()}
+        pillow = Image.open(filename)
         self.size = pillow.size
-        width, height = self.size
+        width, height = pillow.size
         pixels = pillow.load()
-        self.board = [[None for x in range(width)] for y in range(height)]
+        self.cells = [[None for x in range(width)] for y in range(height)]
+        var_count = self.CORE.variant_count
+        sub_per_cell = self.CORE.sub_per_cell
         for y in range(height):
             for x in range(width):
-                pt = Point(x,y)
-                is_crossable, is_buildable = True, True
-                try: key = self.find_key(defines, pixels[y, x])
+                point = Point(x, y)
+                try: key = self.find_key(defines, pixels[x, y])
                 except KeyError:
                     Log.info('Invalid color {} in map "{}"' + \
-                        ' at position {}'.format( pixels[y, x],
+                        ' at position {}'.format( pixels[x, y],
                         path.split('/')[-1], (x,y)))
                     raise
-                if key == 'start_pos': self.starting_positions += [pt]
-                elif key == 'nowalking': is_crossable = False
-                elif key == 'no_builds': is_buildable = False
+                if key == 'start_pos': self.starts += [point]
                 elif 'norm' in key or 'rich' in key:
-                    self.objects_toplace+=[(pt, key)]
-                cell = BoardCell(pt, is_crossable, is_buildable)
-                self.board[y][x] = cell
-
-    def gen_background(self):
-        Log.debug('Generating background')
-        fct = self.CORE.cell_size
-        width, height = self.size
-        pillow = Image.new('RGB', (width, height))
-        pixels = pillow.load()
-        colors = self.CLRS.background
-        for y in range(height):
-            for x in range(width):
-                cell = self.get((x,y))
-                if cell.crossable and cell.buildable:
-                    color = colors[0]
-                else:
-                    if cell.crossable: color = colors[1]
-                    else: color = colors[2]
-                pixels[y, x] = tuple(color)
-        pillow = pillow.resize((width*fct, height*fct))
-        return pillow
-
-    def gen_minimap(self, size):
-        Log.debug('Generating mini-map background')
-        maxw, maxh = size
-        width, height = self.size
-        scale = min(maxw/width, maxh/height)
-        pillow = Image.new('RGB', self.size)
-        pixels = pillow.load()
-        colors = self.CLRS.background
-        for y in range(height):
-            for x in range(width):
-                cell = self.get((x,y))
-                if cell.crossable and cell.buildable:
-                    color = colors[0]
-                else:
-                    if cell.crossable: color = colors[1]
-                    else: color = colors[2]
-                pixels[y, x] = tuple(color)
-        pillow = pillow.resize((int(width*scale), int(height*scale)))
-        return pillow
+                    self.toplace+=[(point, key)]
+                crossable = key != 'not_crsbl'
+                cell = Cell(point, crossable, sub_per_cell, var_count)
+                self.cells[y][x] = cell
 
     @staticmethod
     def find_key(dict, value):

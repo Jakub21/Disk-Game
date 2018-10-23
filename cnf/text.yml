@@ -1,31 +1,23 @@
 ################################
-# GAME LOCALISATION
+# DiskGame Localisation
 ################################
 
-window_title: Disk Game
+# LAUNCHER GENERAL
+window_title: DiskGame Launcher
+title_label: DiskGame
 
-# Labels
-title_label: Disk Game
-
-# Buttons
+# LAUNCHER BUTTONS
 btt_play: Play
 btt_start: Start
 btt_back: Back
 btt_quit: Quit
 
-# In-game
-objcount_suff: ' units'
+# GENERAL LABELS
+loading: Loading
+obj_count_suffix: " units"
 
-# MapObject names
-mapobj:
-    # Buildings
-    command:    'Command Center'
-    tower:      'Tower'
-    wall:       'Wall'
-    # Units
-    worker:     'Worker'
-    soldier:    'Soldier'
-    # Resources
-    woodfield:  'Wood Field'
-    ironfield:  'Iron Field'
-    fuelfield:  'Fuel Field'
+# OBJECT NAMES
+objects:
+    command: Command Center
+    worker: Worker
+    woodfield: Wood Field

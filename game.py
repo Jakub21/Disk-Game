@@ -1,14 +1,31 @@
 #!/usr/bin/env python3
 # coding=utf-8
-import src.system as internal
-from src.core import Application
 from datetime import datetime
+import src.system as internal
+from src.launcher import Launcher
+from src.core import Application
 
 import logging
 Log = logging.getLogger('MainLogger')
 
 def main(debug):
-    app = Application(debug)
+    while True:
+        launcher = Launcher(debug)
+        while not launcher.leaving:
+            launcher.loop()
+            if launcher.starting_game:
+                launcher.quit()
+                break
+        else: break
+        if launcher.starting_game:
+            game = Application(launcher)
+            del launcher
+            while not game.leaving:
+                game.loop()
+            game.cleanup()
+            if not game.back_to_launcher:
+                break
+            del game
 
 if __name__ == '__main__':
     parser = internal.configure_argparser()

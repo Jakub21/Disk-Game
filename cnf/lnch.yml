@@ -1,0 +1,11 @@
+################################
+# DiskGame Launcher Config
+################################
+
+window_size: [1280, 720]
+
+styles: # Defines TK styles (style_name: [fg, bg, font_key])
+    std.TFrame:     ['#fff', '#2e2e2e']
+    std.TButton:    ['#000', '#2e2e2e', 'button']
+    title.TLabel:   ['#fff', '#2e2e2e', 'title']
+    version.TLabel: ['#fff', '#2e2e2e', 'version']

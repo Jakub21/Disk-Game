@@ -1,5 +1,5 @@
 ################################
-# CORE CONFIG
+# DiskGame Core Config
 ################################
 
 # VERSION
@@ -7,17 +7,19 @@ version_smb: '0.0.1'
 version_txt: 'Early Dev (PyGame)'
 
 # INTERNAL PATHS
+board_dir: 'maps/'
+board_suff: '.png'
+
+# INTERFACE
 icon_path: 'img/icon.ico'
-mapsource_dir: 'img/maps/'
-mapsource_suff: '.png'
 
-# GENERAL GRAPHICAL INTERFACE
-use_fullscreen: False
-window_size: [1280, 720] # No effect in fullscreen
+# BOARD CELLS
+sub_per_cell: 10 # Subcells per cell (along a line)
+pix_per_sub: 2 # Graphical size of sub-cell in standard zoom
+variant_count: 3 # Num of variants per state in terrain texture set
 
-# INTERFACE APPEARANCE
+# APPEARANCE
 font_family: Verdana
-console_clr: [30, 40, 50]
 fonts: # Defines fonts (font_key: [height, is_bold])
     title:      [30, False]
     label:      [12, False]
@@ -26,11 +28,4 @@ fonts: # Defines fonts (font_key: [height, is_bold])
     resource:   [17, False]
     obj_name:   [25, False]
     counter:    [22, False]
-styles: # Defines styles (style_name: [fg, bg, font_key])
-    std.TFrame:     ['#fff', '#2e2e2e']
-    std.TButton:    ['#000', '#2e2e2e', 'button']
-    title.TLabel:   ['#fff', '#2e2e2e', 'title']
-    version.TLabel: ['#fff', '#2e2e2e', 'version']
-
-# GRAPHICS
-cell_size: 4 # Background Generator: Size of single BoardCell, in pixels
+    loading:    [50,  True]

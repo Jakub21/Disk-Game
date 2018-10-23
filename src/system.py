@@ -24,6 +24,11 @@ def to_ns(input_dict):
     class NameSpace:
         def __init__(self, input_dict):
             self.__dict__.update(input_dict)
+        def __repr__(self):
+            result = 'NameSpace\n'
+            for k, v in self.__dict__.items():
+                result += '    {}: {}\n'.format(k, v)
+            return result
     return NameSpace(input_dict)
 
 def ifn_mkdir(directory):

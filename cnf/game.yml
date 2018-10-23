@@ -1,7 +1,19 @@
 ################################
-# GAME BALANCE AND RULES
+# GAME RULES AND BALANCE
 ################################
 
-# Resources
+# Starting resources
+starting_wood: 200
+starting_iron: 0
+starting_fuel: 0
+
+# Resource node values
 rsrc_norm_value: 1500
 rsrc_rich_value: 2250
+
+# object types order in selection
+types_order: [
+    soldier, worker,
+    command, tower, wall,
+    woodfield, ironfield, fuelfield
+]

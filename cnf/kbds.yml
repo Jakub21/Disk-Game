@@ -1,0 +1,19 @@
+################################
+# DiskGame Key Bindings
+################################
+
+# GENERAL ACTIONS
+general:
+    toggle_pause: 'P'
+
+# COMMON OBJECT ACTIONS
+controllable:
+    cancel: 'ESC'
+
+unit:
+    move: 'M'
+    stop: 'S'
+
+# OBJECT-SPECIFIC ACTIONS
+command:
+    t_worker: 'W'

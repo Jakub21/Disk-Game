@@ -1,56 +1,105 @@
 from math import sqrt, atan, pi, sin, cos
 
-class Point:
+class Base:
+    '''Magic methods shared by Point and Vector classes'''
+    def __iadd__(self, other):
+        self.x += other.x
+        self.y += other.y
+
+    def __isub__(self, other):
+        self.x -= other.x
+        self.y -= other.y
+
+    def __imul__(self, other):
+        self.x = self.x*other
+        self.y = self.y*other
+
+    def __idiv__(self, other):
+        self.x /= other
+        self.y /= other
+
+    def __ifloordiv__(self, other):
+        self.x //= other
+        self.y //= other
+
+    def __imod__(self, other):
+        self.x %= other
+        self.y %= other
+
+    def __neg__(self):
+        self.x = -self.x
+        self.y = -self.y
+
+    def __abs__(self):
+        self.x = abs(self.x)
+        self.y = abs(self.y)
+
+    def __int__(self):
+        self.x, self.y = int(self.x), int(self.y)
+
+    def __eq__(self, other):
+        if self.x == other.x and self.y == other.y:
+            return True
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+
+class Point(Base):
     '''Point with X and Y coordinates'''
     def __init__(self, x, y):
         self.x, self.y = x, y
 
     def __repr__(self):
-        return 'Point('+str(self.x)+', '+str(self.y)+')'
+        return 'Point({}, {})'.format(self.x, self.y)
+
+    def __add__(self, other):
+        x, y = self.x+other.x, self.y+other.y
+        return Point(x,y)
+
+    def __sub__(self, other):
+        x, y = self.x-other.x, self.y-other.y
+        return Point(x,y)
+
+    def __mul__(self, other):
+        x, y = self.x*other, self.y*other
+        return Point(x,y)
+
+    def __div__(self, other):
+        x, y = self.x/other, self.y/other
+        return Point(x,y)
+
+    def __floordiv__(self, other):
+        x, y = self.x//other, self.y//other
+        return Point(x,y)
+
+    def __mod__(self, other):
+        x, y = self.x%other, self.y%other
+        return Point(x,y)
 
     def copy(self):
         '''Create a copy of this Point'''
         return Point(self.x, self.y)
 
-    def round(self, amount):
-        '''Rounds coordinates to be multiples of amount'''
-        self.x = self.x-self.x%amount
-        self.y = self.y-self.y%amount
-
-    def apply_vector(self, vector):
-        '''Shift point by some vector'''
-        self.x += vector.xdelta
-        self.y += vector.ydelta
-
-    def subtract_vector(self, vector):
-        '''Shift point by inversion of some vector'''
-        self.x -= vector.xdelta
-        self.y -= vector.ydelta
-
-    def get_vector(self, other):
-        '''Returns vector between SELF and OTHER'''
-        return Vector.from_abs(self, other)
-
-    def get_vector2(self, other):
-        '''Returns vector between OTHER and SELF'''
-        return Vector.from_abs(other, self)
-
-    def get_vector_orig(self):
-        '''Returns vector between origin SELF and the Origin (Point(0,0))'''
-        return Vector.from_abs(self, Point(0,0))
-
     def get(self):
         '''Returns 2-tuple with coordinates'''
         return self.x, self.y
 
+    def round(self, positions):
+        '''Rounds coordinates'''
+        self.x = round(self.x, positions)
+        self.y = round(self.y, positions)
 
 
-class Vector:
-    '''Class represents Euclidean Vector.
+
+class Vector(Base):
+    '''Class represents 2D Euclidean Vector.
     Contains method for method usable on plane'''
-    def __init__(self, xdelta=0, ydelta=0):
+    def __init__(self, x=0, y=0):
         '''Create a Vector, basing on its deltas'''
-        self.xdelta, self.ydelta = xdelta, ydelta
+        self.x, self.y = x, y
         self.recalc()
 
     @classmethod
@@ -59,8 +108,8 @@ class Vector:
         obj = cls.__new__(cls)
         xratio = cos(cls.to_rads(rotation))
         yratio = sin(cls.to_rads(rotation))
-        obj.xdelta = xratio * magnitude
-        obj.ydelta = yratio * magnitude
+        obj.x = xratio * magnitude
+        obj.y = yratio * magnitude
         obj.recalc()
         return obj
 
@@ -68,75 +117,89 @@ class Vector:
     def from_abs(cls, init_pt, term_pt):
         '''Create a vector, basing on coords of its init and term points'''
         obj = cls.__new__(cls)
-        obj.xdelta = init_pt.x - term_pt.x
-        obj.ydelta = init_pt.y - term_pt.y
+        obj.x = init_pt.x - term_pt.x
+        obj.y = init_pt.y - term_pt.y
         obj.recalc()
         return obj
 
     @classmethod
-    def from_sum(cls, vectors):
-        '''Create vector by summing vectors from the list'''
+    def from_point(cls, point):
+        '''Create vector from Point (init at origin, term at point)'''
         obj = cls.__new__(cls)
-        obj.xdelta = sum([v.xdelta for v in vectors])
-        obj.ydelta = sum([v.ydelta for v in vectors])
+        obj.x = point.x
+        obj.y = point.y
         obj.recalc()
         return obj
 
     def __repr__(self):
         '''Generate repr string of the Vector'''
-        return 'Vector '+str([self.xdelta, self.ydelta])
+        return 'Vector [{}, {}]'.format(self.x, self.y)
+
+    def __add__(self, other):
+        x, y = self.x+other.x, self.y+other.y
+        return Vector(x,y)
+
+    def __sub__(self, other):
+        x, y = self.x-other.x, self.y-other.y
+        return Vector(x,y)
+
+    def __mul__(self, other):
+        x, y = self.x*other, self.y*other
+        return Vector(x,y)
+
+    def __div__(self, other):
+        x, y = self.x/other, self.y/other
+        return Vector(x,y)
+
+    def __floordiv__(self, other):
+        x, y = self.x//other, self.y//other
+        return Vector(x,y)
+
+    def __mod__(self, other):
+        x, y = self.x%other, self.y%other
+        return Vector(x,y)
 
     def copy(self):
         '''Create a copy of this Vector'''
-        return Vector(self.xdelta, self.ydelta)
+        return Vector(self.x, self.y)
 
     def recalc(self):
         '''Recalculate magnitude and angle of the Vector'''
-        self.magnitude = sqrt(self.xdelta**2 + self.ydelta**2)
-        try: angle = atan(self.ydelta/self.xdelta)
+        self.magnitude = sqrt(self.x**2 + self.y**2)
+        try: angle = atan(self.y/self.x)
         except ZeroDivisionError:
-            angle = 180 if self.xdelta < 0 else 0
+            angle = 180 if self.x < 0 else 0
         angle = round(self.to_degs(angle), 2)
-        if self.xdelta < 0: angle = 180+angle # diff but angle is negative
-        if self.xdelta > 0 and self.ydelta < 0:
+        if self.x < 0: angle = 180+angle # diff but angle is negative
+        if self.x > 0 and self.y < 0:
             angle = 360+angle # diff but angle is negative
-        if self.xdelta == 0:
-            angle = (90 if self.ydelta > 0 else 270) if self.ydelta != 0 else 0
+        if self.x == 0:
+            angle = (90 if self.y > 0 else 270) if self.y != 0 else 0
         self.angle = angle
 
     def get(self):
-        return self.xdelta, self.ydelta
-
-    def round(self, positions=0):
-        '''Round vector's values to intigers or $ positions after comma'''
-        if positions == 0:
-            self.xdelta = int(self.xdelta)
-            self.ydelta = int(self.ydelta)
-        else:
-            self.xdelta = round(self.xdelta, positions)
-            self.ydelta = round(self.ydelta, positions)
-        self.recalc()
+        return self.x, self.y
 
     def scale(self, scalar):
         '''Scale vector by some value'''
-        self.xdelta = self.xdelta*scalar
-        self.ydelta = self.ydelta*scalar
+        self.x = self.x*scalar
+        self.y = self.y*scalar
         self.recalc()
 
     def add(self, vector):
         '''Sum with another vector'''
-        self.xdelta += vector.xdelta
-        self.ydelta += vector.ydelta
+        self.x += vector.x
+        self.y += vector.y
         self.recalc()
 
     def transform(self, matrice):
         '''Perform transformation (2x2 matrice)'''
         xx, xy = matrice[0]
         yx, yy = matrice[1]
-        new_x = xx*self.xdelta, xy*self.ydelta
-        new_y = yx*self.xdelta, yy*self.ydelta
-        self.xdelta = new_x[0] + new_y[0]
-        self.ydelta = new_x[1] + new_y[1]
+        new_x = xx*self.x, xy*self.y
+        new_y = yx*self.x, yy*self.y
+        self.x = new_x[0] + new_y[0]
+        self.y = new_x[1] + new_y[1]
         self.recalc()
 
     @staticmethod
