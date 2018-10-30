@@ -11,3 +11,15 @@ class Player:
         self.rsrc_wood = session.app.GAME.starting_wood
         self.rsrc_iron = session.app.GAME.starting_iron
         self.rsrc_fuel = session.app.GAME.starting_fuel
+
+    def defeat(self):
+        self.session.rem_player(self)
+
+    def leave_session(self):
+        del self.session
+        del self.color
+        del self.blnd_count
+        del self.unit_count
+        del self.rsrc_wood
+        del self.rsrc_iron
+        del self.rsrc_fuel

@@ -1,4 +1,5 @@
 from src.gameobj import Object, Controllable
+from src.weapon import Weapon
 
 class Building(Controllable):
     def __init__(self, sess, coords, ftprint, \
@@ -21,8 +22,8 @@ class Unit(Controllable):
 
 
 class Destructible(Controllable):
-    def __init__(self, sess, coords, ftprint, heal_pts, armor, weapon):
-        super().__init__(sess, coords, ftprint, heal_pts, None, armor, weapon)
+    def __init__(self, sess, coords, ftprint, heal_pts, armor):
+        super().__init__(sess, coords, ftprint, heal_pts, None, armor, Weapon())
         self.otype = 'D'
 
 

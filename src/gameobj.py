@@ -1,6 +1,7 @@
+from src.cmd_defines import AllCommands as cmds
 
 class Object:
-    '''Object is an abstract class user for anything placed on board
+    '''Object is an class used for anything placed on board
     Parameters:
         sess [Session] Game session
         coords [Point] Central point of object's footprint
@@ -52,6 +53,19 @@ class Controllable(Object):
         self.owner = owner
         self.armor = armor
         self.weapon = weapon
+        self.cmd_queue = []
+        self.commands = {}
+        self.add_cmd('dmg_self', cmds.dmg_self, (0,0))
+
+    def add_cmd(self, key, command, position):
+        self.commands[key] = (command, position)
+
+    def get_cmd(self, pos):
+        for key, cmd in self.commands.items():
+            command, position = cmd
+            if position == pos:
+                return key, command
+        return None, None
 
     def update(self, tick):
         '''Updates object state'''
@@ -68,12 +82,6 @@ class Controllable(Object):
         })
         return d
 
-    def recv_heal(self, amount):
-        '''Receives healing'''
-        self.heal_pts += amount
-        if self.heal_pts > self.max_heal_pts:
-            self.heal_pts = self.max_heal_pts
-
     def recv_damage(self, doer):
         '''Receives damage'''
         amount = doer.weapon.damage
@@ -87,9 +95,6 @@ class Controllable(Object):
     def destroy(self, doer):
         '''Destroys object'''
         self.session.tell_destroyed(self)
-        if self.owner is not None:
-            self.owner.tell_destroyed(self)
-        del self
 
     # TODO: Restore other combat-related methods
 

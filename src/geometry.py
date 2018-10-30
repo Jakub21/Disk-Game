@@ -34,9 +34,6 @@ class Base:
         self.x = abs(self.x)
         self.y = abs(self.y)
 
-    def __int__(self):
-        self.x, self.y = int(self.x), int(self.y)
-
     def __eq__(self, other):
         if self.x == other.x and self.y == other.y:
             return True

@@ -47,12 +47,16 @@ class Interface:
         v.cns_ss = 320                              #Console:Sides:Size
         v.ccap_crty = -28                           #Console:Cap:Correction:Y
         v.ccap_crtx = -48                           #Console:Cap:R:Correction:X
+        v.cicos = 40                                #Console:Icons:Size
+        v.cspc = 2                                  #Console:Spacing
         v.csel_th = 32                              #Console:Selection:Text:Y
         v.csel_cols = 8                             #Console:Selection:Columns
         v.csel_rows = 3                             #Console:Selection:Rows
         v.csel_spc = 8                              #Console:Selection:Spacing
-        v.cicos = 40                                #Console:Icons:Size
-        v.cspc = 2                                  #Console:Spacing
+        v.ccmd_cols = 5                             #Console:Commands:Columns
+        v.ccmd_rows = 5                             #Console:Commands:Rows
+        v.ccmd_crtx = 20                            #Console:Commands:Correction
+        v.ccmd_crty = 20                            #Console:Commands:Correction
         # Session- or Device- specific
         v.disp_w = disp.current_w                   #Display:Size:X
         v.disp_h = disp.current_h                   #Display:Size:Y
@@ -74,6 +78,8 @@ class Interface:
         # Interface (Calculated)
         v.csel_ofx = v.disp_w//2 -2*v.cicos         #Console:Selection:Offxet:X
         v.csel_ofy = v.csel_th+v.disp_h-v.cns_ch    #Console:Selection:Offset:Y
+        v.ccmd_ofx = v.ccmd_crtx+v.disp_w-v.cns_ss  #Console:Selection:Offxet:X
+        v.ccmd_ofy = v.ccmd_crty+v.disp_h-v.cns_ss  #Console:Selection:Offset:Y
 
     def load_gfx(self, vr):
         '''Loads graphics (vr parameter is terrain textures variant)'''
@@ -150,6 +156,7 @@ class Interface:
         self.screen.blit(self.gfx.ui['console_cap_r'],
             (v.disp_w+v.ccap_crtx-v.cns_ss, v.disp_h-v.cns_ss+v.ccap_crty))
         self.blit_cns_selection()
+        self.blit_cns_cmd_panel()
 
     def blit_cns_selection(self):
         v = self.ui_vars
@@ -190,6 +197,29 @@ class Interface:
         crect.top = v.disp_h - v.cns_ch
         crect.centerx = cntr_w//2 + v.cns_ss
         self.screen.blit(text, crect)
+
+    def blit_cns_cmd_panel(self):
+        if self.selection == []:
+            return
+        try:
+            if self.selection[0].owner is not self.player:
+                return
+        except AttributeError:
+            return
+        v = self.ui_vars
+        of_x, of_y = v.ccmd_ofx, v.ccmd_ofy
+        taken_slots = []
+        try: commands = self.selection[0].commands
+        except AttributeError: return
+        for key, cmd in commands.items():
+            method, position = cmd
+            icon = self.gfx.icons[key]
+            if position in taken_slots:
+                raise ValueError('Commands position conflict ({})'.format(key))
+            taken_slots += [position]
+            px, py = position
+            x, y = of_x+px*(v.cicos+v.cspc), of_y+py*(v.cicos+v.cspc)
+            self.screen.blit(icon, (x,y))
 
     # Helper methods
 

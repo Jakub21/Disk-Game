@@ -15,5 +15,6 @@ rsrc_rich_value: 2250
 types_order: [
     soldier, worker,
     command, tower, wall,
+    smallrocks,
     woodfield, ironfield, fuelfield
 ]

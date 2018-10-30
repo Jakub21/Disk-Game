@@ -15,7 +15,6 @@ class Session:
     def reinit(self, app):
         self.app = app
         self.reinitialized = True
-        self.app.tell_board_size(board.size)
 
     def begin(self):
         self.is_paused = False
@@ -37,12 +36,32 @@ class Session:
 
     def add_object(self, object):
         if not self.board.apply_fp(object):
+            self.rem_object(object)
             return False
         self.objects += [object]
         if object.otype == 'B': object.owner.blnd_count += 1
         if object.otype == 'U': object.owner.unit_count += 1
         if self.reinitialized: self.tell_tell_dirty()
         return True
+
+    def rem_object(self, object):
+        try:
+            player = object.owner
+            if object.otype == 'B': player.blnd_count -= 1
+            elif object.otype == 'U': player.unit_count -= 1
+            if player.blnd_count == 0:
+                player.defeat()
+                if self.app.player is player:
+                    self.app.tell_defeated()
+        except AttributeError:
+            pass
+        self.tell_tell_dirty()
+        self.board.release_fp(object)
+        try: self.app.selection.remove(object)
+        except ValueError: pass
+        try: self.objects.remove(object)
+        except ValueError: pass
+        del object
 
     def add_player(self, player):
         Log.info('Adding player {}'.format(player.username))
@@ -71,3 +90,6 @@ class Session:
             self.is_paused = not self.is_paused
         else:
             self.is_paused = force
+
+    def tell_destroyed(self, obj):
+        self.rem_object(obj)

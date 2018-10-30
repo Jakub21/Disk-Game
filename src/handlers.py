@@ -20,6 +20,8 @@ class Handlers:
         self.regions.board = pg.Rect(0, 0, v.disp_w, v.disp_h-v.cns_ss)
         self.regions.notch = pg.Rect(v.cns_ss, v.disp_h-v.cns_ss,
             v.disp_w-2*v.cns_ss, v.cns_ss-v.cns_ch)
+        self.regions.cmnds = pg.Rect(v.ccmd_ofx, v.ccmd_ofy,
+            v.ccmd_cols*(v.cicos+v.cspc), v.ccmd_rows*(v.cicos+v.cspc))
 
     def evt_handle(self, evt):
         r = self.regions
@@ -31,8 +33,9 @@ class Handlers:
         if evt.type == pg.MOUSEBUTTONDOWN:
             if r.board.collidepoint(evt.pos) or r.notch.collidepoint(evt.pos):
                 if evt.button == 1: self.evt_board_lclick(evt.pos)
-            if r.board.collidepoint(evt.pos) or r.notch.collidepoint(evt.pos):
                 if evt.button == 3: self.evt_board_rclick(evt.pos)
+            elif r.cmnds.collidepoint(evt.pos):
+                if evt.button == 1: self.evt_cmnd_lclick(evt.pos)
 
     def evt_board_drag(self, rel):
         v = self.ui_vars
@@ -95,10 +98,38 @@ class Handlers:
         import src.objects as o
         v = self.ui_vars
         board = self.session.board
-        worker = o.Worker(board, Point(*pos), self.player)
+        coords = Point(*pos)
+        # If fp is square
+        #coords.round(0)
+        #coords = coords - Point(1,1)
+        #
+        worker = o.Soldier(self.session, coords, self.player)
         if not self.session.add_object(worker):
             del worker
 
+    def evt_cmnd_lclick(self, pos):
+        if self.selection[0].owner is not self.player:
+            return
+        v = self.ui_vars
+        Log.debug('Clicked')
+        x, y = pos
+        x, y = x - v.ccmd_ofx, y - v.ccmd_ofy
+        icowsp = v.cicos + v.cspc # Icon with spacing
+        if x%icowsp >= v.cicos or y%icowsp >= v.cicos:
+            Log.debug('Spacing')
+            return # Spacing, not icon
+        x, y = x//icowsp, y//icowsp
+        key, command = self.selection[0].get_cmd((x,y))
+        Log.debug('Clicked {}'.format(key))
+        if key == None:
+            return # Empty slot
+        self.evt_execute_cmnd(self.selection, key, command)
+
+    def evt_execute_cmnd(self, scope, key, command):
+        Log.debug('Executing {}'.format(key))
+        if command.hard:
+            scope = [scope[0]] # TODO: Object that can exe command fastest
+        command.execute(scope)
 
     def update_board_pos(self):
         v = self.ui_vars

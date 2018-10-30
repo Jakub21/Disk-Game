@@ -11,6 +11,7 @@ class Application(Handlers, Interface):
         self.leaving = False
         self.back_to_launcher = False
         self.extract_lnch(launcher)
+        self.session.reinit(self)
         self.ui_init()
         self.handlers_init()
         self.begin()
@@ -21,9 +22,6 @@ class Application(Handlers, Interface):
         pg.display.update()
         if not self.session.is_paused:
             self.blit_full()
-
-    def begin(self):
-        self.session.begin()
 
     def extract_lnch(self, launcher):
         '''Extract variables from launcher that will be used in game'''
@@ -36,6 +34,14 @@ class Application(Handlers, Interface):
         self.session = launcher.session
         self.player = launcher.player
         self.debug = launcher.debug
+
+    def begin(self):
+        self.session.begin()
+
+    def tell_defeated(self):
+        Log.debug('Defeated!')
+        self.back_to_launcher = True
+        self.leaving = True
 
     def quit(self):
         self.leaving = True

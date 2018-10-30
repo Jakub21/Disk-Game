@@ -89,7 +89,7 @@ class Board:
     def get(self, coords):
         try: x, y = coords.get() # Point object
         except: x, y = coords # Point (tuple)
-        return self.cells[y][x]
+        return self.cells[int(y)][int(x)]
 
     def get_object(self, coords):
         try: x, y = coords.get() # Point object
@@ -113,7 +113,6 @@ class Board:
                     pt = pt + vector
                     self.get(pt).release(object)
         else:
-            Log.debug('Placing round object at {}'.format(object.coords))
             cx, cy = object.coords.get()
             radius = fp.size / 2
             gr = radius / self.CORE.sub_per_cell
@@ -124,22 +123,27 @@ class Board:
                         Log.debug('Can not place, spot taken')
                         success = False
                         break
-            ####  TEMP  ####
-            #Log.debug('Placement subcells')
-            #for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
-            #    for suby in range(self.CORE.sub_per_cell):
-            #        for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
-            #            for subx in range(self.CORE.sub_per_cell):
-            #                print(end='X ' if (self.get((x,y)).subcells[suby][subx] is not None) else '- ')
-            #            print(end='  ')
-            #        print()
-            #    print()
-            ################
             if not success:
                 for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
                     for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
                         self.get((x,y)).release(object)
+                return False
         return True
+
+    def release_fp(self, object):
+        fp = object.footprint
+        if fp.is_square:
+            vector = Vector.from_point(object.coords)
+            for pt in fp.points:
+                pt = pt + vector
+                self.get(pt).release(object)
+        else:
+            cx, cy = object.coords.get()
+            radius = fp.size / 2
+            gr = radius / self.CORE.sub_per_cell
+            for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
+                for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
+                    self.get((x,y)).release(object)
 
     def get_cell_gfx(self, coords):
         try: x, y = coords.get() # Point object
