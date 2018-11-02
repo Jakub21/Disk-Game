@@ -69,19 +69,19 @@ class Handlers:
         board = self.session.board
         shift = pg.key.get_mods() & pg.KMOD_SHIFT
         x, y = pos
-        object = board.get_object((x,y))
-        if object is not None:
+        obj = board.get_object((x,y))
+        if obj is not None:
             if shift:
-                if object.selected:
-                    object.deselect()
-                    self.selection.remove(object)
+                if obj.selected:
+                    obj.deselect()
+                    self.selection.remove(obj)
                 else:
-                    object.select()
-                    self.selection += [object]
+                    obj.select()
+                    self.selection += [obj]
             else:
                 self.deselect_all()
-                object.select()
-                self.selection = [object]
+                obj.select()
+                self.selection = [obj]
         else:
             if not shift: self.deselect_all()
             # Clicking with shift at an empty cell does nothing
@@ -92,44 +92,38 @@ class Handlers:
         v = self.ui_vars
         x, y = pos
         x, y = round(x/v.cell_px,3)+v.b_sx, round(y/v.cell_px,3)+v.b_sy
-        self.temp_place_worker((x,y))
+        self.temp_place_obj((x,y))
 
-    def temp_place_worker(self, pos):
+    def temp_place_obj(self, pos):
         import src.objects as o
         v = self.ui_vars
         board = self.session.board
         coords = Point(*pos)
         # If fp is square
-        #coords.round(0)
-        #coords = coords - Point(1,1)
+        coords.to_ints()
         #
-        worker = o.Soldier(self.session, coords, self.player)
-        if not self.session.add_object(worker):
-            del worker
+        obj = o.Wall(self.session, coords, self.player)
+        self.session.add_object(obj)
 
     def evt_cmnd_lclick(self, pos):
+        if self.selection == []:
+            return
         if self.selection[0].owner is not self.player:
             return
         v = self.ui_vars
-        Log.debug('Clicked')
         x, y = pos
         x, y = x - v.ccmd_ofx, y - v.ccmd_ofy
         icowsp = v.cicos + v.cspc # Icon with spacing
         if x%icowsp >= v.cicos or y%icowsp >= v.cicos:
-            Log.debug('Spacing')
             return # Spacing, not icon
         x, y = x//icowsp, y//icowsp
         key, command = self.selection[0].get_cmd((x,y))
-        Log.debug('Clicked {}'.format(key))
         if key == None:
             return # Empty slot
         self.evt_execute_cmnd(self.selection, key, command)
 
     def evt_execute_cmnd(self, scope, key, command):
-        Log.debug('Executing {}'.format(key))
-        if command.hard:
-            scope = [scope[0]] # TODO: Object that can exe command fastest
-        command.execute(scope)
+        command.start(scope)
 
     def update_board_pos(self):
         v = self.ui_vars
@@ -154,4 +148,4 @@ class Handlers:
         self.selection = sorted
         if old_len != len(self.selection):
             l = [o.objkey for o in old_sel if o not in self.selection]
-            Log.warn('oTypes {} are not assigned to selection order'.format(l))
+            Log.warn('Objects {} are not assigned to selection order'.format(l))

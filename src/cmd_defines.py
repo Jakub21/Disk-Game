@@ -7,4 +7,4 @@ def cmd_dmg_self(actor):
 
 class AllCommands:
     '''Container class'''
-    dmg_self = Command(cmd_dmg_self, 0, False)
+    dmg_self = Command(cmd_dmg_self, True, duration=30)

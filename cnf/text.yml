@@ -19,6 +19,8 @@ obj_count_suffix: " units"
 # OBJECT NAMES
 objects:
     command: Command Center
+    tower: Tower
+    wall: Wall
     soldier: Soldier
     worker: Worker
     smallrocks: Small Rocks

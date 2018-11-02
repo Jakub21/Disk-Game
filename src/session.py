@@ -5,12 +5,14 @@ Log = logging.getLogger('MainLogger')
 
 class Session:
     def __init__(self, launcher):
+        Log.debug('Starting session')
         self.app = launcher
         self.reinitialized = False
         self.is_paused = True
         self.tick = 0
         self.players = []
         self.objects = []
+        self.ticks_per_sec = self.app.GAME.ticks_per_sec
 
     def reinit(self, app):
         self.app = app
@@ -18,6 +20,11 @@ class Session:
 
     def begin(self):
         self.is_paused = False
+
+    def update(self):
+        self.tick += 1
+        for obj in self.objects:
+            obj.update(self.tick)
 
     def set_board(self, board):
         Log.debug('Adding board to session')
@@ -27,28 +34,28 @@ class Session:
                 value = self.app.GAME.rsrc_rich_value if 'rich' in key \
                     else self.app.GAME.rsrc_norm_value
                 if   'wood' in key:
-                    object = o.WoodField(self, point, value)
+                    obj = o.WoodField(self, point, value)
                 elif 'iron' in key:
-                    object = o.IronField(self, point, value)
+                    obj = o.IronField(self, point, value)
                 elif 'fuel' in key:
-                    object = o.FuelField(self, point, value)
-            r = self.add_object(object)
+                    obj = o.FuelField(self, point, value)
+            r = self.add_object(obj)
 
-    def add_object(self, object):
-        if not self.board.apply_fp(object):
-            self.rem_object(object)
+    def add_object(self, obj):
+        self.objects += [obj]
+        if obj.otype == 'B': obj.owner.blnd_count += 1
+        if obj.otype == 'U': obj.owner.unit_count += 1
+        if not self.board.apply_fp(obj):
+            self.rem_object(obj)
             return False
-        self.objects += [object]
-        if object.otype == 'B': object.owner.blnd_count += 1
-        if object.otype == 'U': object.owner.unit_count += 1
         if self.reinitialized: self.tell_tell_dirty()
         return True
 
-    def rem_object(self, object):
+    def rem_object(self, obj):
         try:
-            player = object.owner
-            if object.otype == 'B': player.blnd_count -= 1
-            elif object.otype == 'U': player.unit_count -= 1
+            player = obj.owner
+            if obj.otype == 'B': player.blnd_count -= 1
+            elif obj.otype == 'U': player.unit_count -= 1
             if player.blnd_count == 0:
                 player.defeat()
                 if self.app.player is player:
@@ -56,12 +63,12 @@ class Session:
         except AttributeError:
             pass
         self.tell_tell_dirty()
-        self.board.release_fp(object)
-        try: self.app.selection.remove(object)
+        self.board.release_fp(obj)
+        try: self.app.selection.remove(obj)
         except ValueError: pass
-        try: self.objects.remove(object)
+        try: self.objects.remove(obj)
         except ValueError: pass
-        del object
+        del obj
 
     def add_player(self, player):
         Log.info('Adding player {}'.format(player.username))

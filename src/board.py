@@ -26,49 +26,49 @@ class Cell:
         xx, yy = int(x*self.size), int(y*self.size)
         return self.subcells[yy][xx]
 
-    def occupy(self, object):
+    def occupy(self, obj):
         if not self.crossable: return False
-        if object.footprint.is_square:
+        if obj.footprint.is_square:
             if self.occupied != 0: return False
             self.occupied = 2
-            self.sqr_occupier = object
+            self.sqr_occupier = obj
             return True
         else:
-            return self.partial_occupy(object)
+            return self.sub_occupy(obj)
 
-    def partial_occupy(self, object):
+    def sub_occupy(self, obj):
         if not self.crossable: return False
         if self.occupied == 2: return False
-        size = object.footprint.size / 2 # Radius
+        size = obj.footprint.size / 2 # Radius
         for x in range(self.size):
             for y in range(self.size):
                 sx, sy = self.coords.get()
                 coords = Point(sx+(x/self.size), sy+(y/self.size))
-                v = Vector.from_abs(object.coords, coords)
+                v = Vector.from_abs(obj.coords, coords)
                 if v.magnitude > size:
                     continue
                 if self.subcells[y][x] is not None:
                     return False
-                self.subcells[y][x] = object
+                self.subcells[y][x] = obj
         self.occupied = 1
         return True
 
-    def release(self, object):
-        if object.footprint.is_square:
-            if self.sqr_occupier is not object:
+    def release(self, obj):
+        if obj.footprint.is_square:
+            if self.sqr_occupier is not obj:
                 return
             self.occupied = 0
             self.sqr_occupier = None
         else:
-            return self.partial_release(object)
+            return self.sub_release(obj)
 
-    def partial_release(self, object):
+    def sub_release(self, obj):
         size = self.size
-        rad = object.footprint.size
-        delta = object.coords - self.coords
+        rad = obj.footprint.size
+        delta = obj.coords - self.coords
         for x in range(size):
             for y in range(size):
-                if self.subcells[y][x] == object:
+                if self.subcells[y][x] == obj:
                     self.subcells[y][x] = None
         ncnt = sum(1 for row in self.subcells for e in row if e is None)
         self.occupied = 0 if ncnt == pow(size, 2) else 1
@@ -87,66 +87,62 @@ class Board:
         self.load_png(path)
 
     def get(self, coords):
-        try: x, y = coords.get() # Point object
+        try: x, y = coords.get() # Point obj
         except: x, y = coords # Point (tuple)
         return self.cells[int(y)][int(x)]
 
     def get_object(self, coords):
-        try: x, y = coords.get() # Point object
+        try: x, y = coords.get() # Point obj
         except: x, y = coords # Point (tuple)
         sx, sy = round((x%1), 3), round((y%1), 3)
         subs = self.CORE.sub_per_cell
         cell = self.cells[int(y)][int(x)]
         return cell.get_object((x%1,y%1))
 
-    def apply_fp(self, object):
-        fp = object.footprint
+    def apply_fp(self, obj):
+        fp = obj.footprint
         success = True
         if fp.is_square:
-            vector = Vector.from_point(object.coords)
+            vector = Vector.from_point(obj.coords)
             for pt in fp.points:
                 pt = pt + vector
-                if not self.get(pt).occupy(object):
+                if not self.get(pt).occupy(obj):
                     success = False
             if not success:
-                for pt in fp.points:
-                    pt = pt + vector
-                    self.get(pt).release(object)
+                self.release_fp(obj)
+                return False
         else:
-            cx, cy = object.coords.get()
+            cx, cy = obj.coords.get()
             radius = fp.size / 2
             gr = radius / self.CORE.sub_per_cell
             for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
                 if not success: break
                 for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
-                    if not self.get((x,y)).occupy(object):
-                        Log.debug('Can not place, spot taken')
+                    if not self.get((x,y)).occupy(obj):
                         success = False
                         break
             if not success:
-                for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
-                    for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
-                        self.get((x,y)).release(object)
+                self.release_fp(obj)
                 return False
         return True
 
-    def release_fp(self, object):
-        fp = object.footprint
+    def release_fp(self, obj):
+        fp = obj.footprint
         if fp.is_square:
-            vector = Vector.from_point(object.coords)
+            vector = Vector.from_point(obj.coords)
             for pt in fp.points:
                 pt = pt + vector
-                self.get(pt).release(object)
+                self.get(pt).release(obj)
         else:
-            cx, cy = object.coords.get()
+            cx, cy = obj.coords.get()
             radius = fp.size / 2
             gr = radius / self.CORE.sub_per_cell
             for y in range(int(cy-gr/2)-1, int(cy+gr/2)+2):
                 for x in range(int(cx-gr/2)-1, int(cx+gr/2)+2):
-                    self.get((x,y)).release(object)
+                    self.get((x,y)).release(obj)
 
     def get_cell_gfx(self, coords):
-        try: x, y = coords.get() # Point object
+        try: x, y = coords.get() # Point obj
         except: x, y = coords # Point (tuple)
         return self.cgroups[y][x].variant
 

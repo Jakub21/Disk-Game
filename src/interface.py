@@ -131,16 +131,16 @@ class Interface:
     def blit_objects(self):
         v = self.ui_vars
         objects = self.session.objects
-        for object in objects:
-            if not self.check_obj_onscreen(object): continue
-            try: texture = self.gfx.objs[object.objkey][object.owner.clr_choice]
-            except AttributeError: texture = self.gfx.objs[object.objkey]['red']
-            size = object.footprint.size
+        for obj in objects:
+            if not self.check_obj_onscreen(obj): continue
+            try: texture = self.gfx.objs[obj.objkey][obj.owner.clr_choice]
+            except AttributeError: texture = self.gfx.objs[obj.objkey]['red']
+            size = obj.footprint.size
             xmod, ymod = 0, 0
-            if object.footprint.is_square: size = (size-1)//2
+            if obj.footprint.is_square: size = (size-1)//2
             else: xmod, ymod = 0.5*size, 0.5*size
-            x = (object.coords.x - v.b_sx - size + xmod)*v.cell_px
-            y = (object.coords.y - v.b_sy - size + ymod)*v.cell_px
+            x = (obj.coords.x - v.b_sx - size + xmod)*v.cell_px
+            y = (obj.coords.y - v.b_sy - size + ymod)*v.cell_px
             self.screen.blit(texture, (x, y))
 
     def blit_console(self):
@@ -181,8 +181,8 @@ class Interface:
             text = str(len(self.selection))+self.TEXT.obj_count_suffix
             sect_w = v.csel_cols*(v.cicos+v.csel_spc)-v.csel_spc
             i = 0
-            for object in self.selection:
-                texture = self.gfx.grayed[object.objkey]
+            for obj in self.selection:
+                texture = self.gfx.grayed[obj.objkey]
                 x = (i% v.csel_cols) * (v.cicos+v.csel_spc)
                 y = (i//v.csel_cols) * (v.cicos+v.csel_spc)
                 x = x + cntr_w//2 + v.cns_ss - sect_w//2
@@ -215,7 +215,8 @@ class Interface:
             method, position = cmd
             icon = self.gfx.icons[key]
             if position in taken_slots:
-                raise ValueError('Commands position conflict ({})'.format(key))
+                raise ValueError('Commands position conflict ({}:{})'.format(\
+                    self.selection[0].objkey, key))
             taken_slots += [position]
             px, py = position
             x, y = of_x+px*(v.cicos+v.cspc), of_y+py*(v.cicos+v.cspc)
@@ -223,12 +224,12 @@ class Interface:
 
     # Helper methods
 
-    def check_obj_onscreen(self, object):
+    def check_obj_onscreen(self, obj):
         v = self.ui_vars
-        fp = object.footprint
+        fp = obj.footprint
         m = fp.size
-        if object.coords.x+m > v.b_sx and object.coords.x-m < v.b_sx+v.db_w:
-            if object.coords.y+m > v.b_sy and object.coords.y-m < v.b_sy+v.db_h:
+        if obj.coords.x+m > v.b_sx and obj.coords.x-m < v.b_sx+v.db_w:
+            if obj.coords.y+m > v.b_sy and obj.coords.y-m < v.b_sy+v.db_h:
                 return True
         return False
 

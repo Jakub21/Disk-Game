@@ -11,18 +11,16 @@ from src.footprint import Footprint
 class CommandCenter(Building):
     def __init__(self, session, coords, owner):
         fprint = Footprint.square(7)
-        heal_pts = 2000
+        heal_pts = 1500
         armor = 2
-        damage, rate, range = 40, 60, 8
-        ignore_armor = False
-        weapon = Weapon(damage, rate, range, ignore_armor)
+        weapon = Weapon()
         super().__init__(session, coords, fprint, heal_pts, owner, armor, weapon)
         self.objkey = 'command'
 
 class Wall(Building):
     def __init__(self, session, coords, owner):
         fprint = Footprint.square(2)
-        heal_pts = 800
+        heal_pts = 500
         armor = 2
         weapon = Weapon() # Placeholder
         super().__init__(session, coords, fprint, heal_pts, owner, armor, weapon)
@@ -31,9 +29,9 @@ class Wall(Building):
 class Tower(Building):
     def __init__(self, session, coords, owner):
         fprint = Footprint.square(3)
-        heal_pts = 1000
+        heal_pts = 800
         armor = 2
-        damage, rate, range = 15, 30, 5
+        damage, rate, range = 5, 30, 5
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
         super().__init__(session, coords, fprint, heal_pts, owner, armor, weapon)

@@ -2,14 +2,17 @@
 # GAME RULES AND BALANCE
 ################################
 
+# General
+ticks_per_sec: 30
+
 # Starting resources
 starting_wood: 200
 starting_iron: 0
 starting_fuel: 0
 
 # Resource node values
-rsrc_norm_value: 1500
-rsrc_rich_value: 2250
+rsrc_norm_value: 1000
+rsrc_rich_value: 1500
 
 # object types order in selection
 types_order: [

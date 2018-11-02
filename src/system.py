@@ -65,7 +65,7 @@ def configure_logger(use_debug=False):
 
 def configure_argparser():
     '''Creates and configures parser object'''
-    parser = ArgumentParser('Editor')
+    parser = ArgumentParser('Game')
     parser.add_argument('-v', '--verbose',
         help='Changes logging level to debug', action='store_true')
     parser.add_argument('-d', '--debug',

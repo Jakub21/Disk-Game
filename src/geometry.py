@@ -84,6 +84,10 @@ class Point(Base):
         '''Returns 2-tuple with coordinates'''
         return self.x, self.y
 
+    def to_ints(self):
+        self.x = int(self.x)
+        self.y = int(self.y)
+
     def round(self, positions):
         '''Rounds coordinates'''
         self.x = round(self.x, positions)

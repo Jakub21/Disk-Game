@@ -1,11 +1,15 @@
+from src.command import StartedCommand
 from src.cmd_defines import AllCommands as cmds
+
+import logging
+Log = logging.getLogger('MainLogger')
 
 class Object:
     '''Object is an class used for anything placed on board
     Parameters:
         sess [Session] Game session
-        coords [Point] Central point of object's footprint
-        ftprint [Footprint] A footprint this object occupies on board
+        coords [Point] Central point of obj's footprint
+        ftprint [Footprint] A footprint this obj occupies on board
     '''
     def __init__(self, sess, coords, ftprint):
         self.session = sess
@@ -37,13 +41,13 @@ class Object:
 
 
 class Controllable(Object):
-    '''Controllable Object represents object controllable by player
+    '''Controllable Object represents obj controllable by player
     Parameters
         sess [Session] Game session
-        coords [Point] Central point of object's footprint
-        ftprint [Footprint] A footprint this object occupies on board
-        heal_pts [int] Amount of heal points this object has (also max)
-        owner [Player] Owner of this object
+        coords [Point] Central point of obj's footprint
+        ftprint [Footprint] A footprint this obj occupies on board
+        heal_pts [int] Amount of heal points this obj has (also max)
+        owner [Player] Owner of this obj
         armor [int] Amount of damage that is subtracted from hits
         weapon [Weapon] Weapon used by attack method
     '''
@@ -53,8 +57,11 @@ class Controllable(Object):
         self.owner = owner
         self.armor = armor
         self.weapon = weapon
-        self.cmd_queue = []
+        self.queue = []
         self.commands = {}
+        self.busy = False
+        self.current = StartedCommand.placeholder()
+        self.cmd_perc = None
         self.add_cmd('dmg_self', cmds.dmg_self, (0,0))
 
     def add_cmd(self, key, command, position):
@@ -67,11 +74,30 @@ class Controllable(Object):
                 return key, command
         return None, None
 
+    def queue_cmd(self, command, args):
+        self.queue += [(command, args)]
+
     def update(self, tick):
-        '''Updates object state'''
+        '''Updates obj state'''
         super().update(tick)
         self.weapon.update()
-        # TODO: Commands and Actions
+        if self.busy and not self.current.is_placeholder:
+            if self.current.check_done():
+                Log.debug('Exe at tick: {}'.format(self.session.tick))
+                self.current.exec_cmd()
+                self.busy = False
+                self.cmd_perc = None
+                if self.queue == []:
+                    self.current = StartedCommand.placeholder()
+            else:
+                if self.current.command.can_perc:
+                    self.cmd_perc = self.current.command.get_perc()
+        if self.queue != [] and not self.busy:
+            Log.debug('Started at tick: {}'.format(self.session.tick))
+            self.busy = True
+            command, args = self.queue[0]
+            self.current = StartedCommand(self.session, self, command, *args)
+            self.queue = self.queue[1:]
 
     def get_attrs(self):
         '''Creates dict with data to put in console'''
@@ -93,11 +119,11 @@ class Controllable(Object):
             self.destroy(doer)
 
     def destroy(self, doer):
-        '''Destroys object'''
+        '''Destroys obj'''
         self.session.tell_destroyed(self)
 
     # TODO: Restore other combat-related methods
 
-    def check_dist(self, object):
+    def check_dist(self, obj):
         '''Check distance to other MapObject'''
-        return Vector.from_point(abs(self.coords-object.coords)).magnitude
+        return Vector.from_point(abs(self.coords-obj.coords)).magnitude
