@@ -9,12 +9,13 @@ class Handlers:
     '''Method-container class. Contains event-handling-related methods'''
 
     def handlers_init(self):
-        self.pointing_onboard = False
-        self.pointing_for = None
+        self.pointing = False
+        self.pointing_for = (None, None)
         self.selection = []
         self.make_regions()
 
     def make_regions(self):
+        '''Creates screen regions'''
         v = self.ui_vars
         self.regions = to_ns({})
         self.regions.board = pg.Rect(0, 0, v.disp_w, v.disp_h-v.cns_ss)
@@ -24,6 +25,7 @@ class Handlers:
             v.ccmd_cols*(v.cicos+v.cspc), v.ccmd_rows*(v.cicos+v.cspc))
 
     def evt_handle(self, evt):
+        '''Receives event and starts related methods'''
         r = self.regions
         if evt.type == pg.QUIT:
             self.quit()
@@ -38,6 +40,7 @@ class Handlers:
                 if evt.button == 1: self.evt_cmnd_lclick(evt.pos)
 
     def evt_board_drag(self, rel):
+        '''mouse movement over board with CMB pressed'''
         v = self.ui_vars
         rel_x, rel_y = rel
         if self.USER.reversed_drag:
@@ -53,59 +56,23 @@ class Handlers:
         self.tell_dirty()
 
     def evt_board_lclick(self, pos):
+        '''LMB click on board'''
         v = self.ui_vars
         x, y = pos
         x, y = round(x/v.cell_px,3)+v.b_sx, round(y/v.cell_px,3)+v.b_sy
-        if self.pointing_onboard:
-            self.evt_point_target((x,y))
+        if self.pointing:
+            self.act_point((x,y))
         else:
-            self.evt_select((x,y))
-
-    def evt_point_target(self, pos):
-        pass
-
-    def evt_select(self, pos):
-        v = self.ui_vars
-        board = self.session.board
-        shift = pg.key.get_mods() & pg.KMOD_SHIFT
-        x, y = pos
-        obj = board.get_object((x,y))
-        if obj is not None:
-            if shift:
-                if obj.selected:
-                    obj.deselect()
-                    self.selection.remove(obj)
-                else:
-                    obj.select()
-                    self.selection += [obj]
-            else:
-                self.deselect_all()
-                obj.select()
-                self.selection = [obj]
-        else:
-            if not shift: self.deselect_all()
-            # Clicking with shift at an empty cell does nothing
-        self.sort_selection()
-        self.tell_dirty()
+            self.act_select((x,y))
 
     def evt_board_rclick(self, pos):
+        '''RMB click on board'''
         v = self.ui_vars
         x, y = pos
         x, y = round(x/v.cell_px,3)+v.b_sx, round(y/v.cell_px,3)+v.b_sy
-        self.temp_place_obj((x,y))
-
-    def temp_place_obj(self, pos):
-        import src.objects as o
-        v = self.ui_vars
-        board = self.session.board
-        coords = Point(*pos)
-        # If fp is square
-        coords.to_ints()
-        #
-        obj = o.Wall(self.session, coords, self.player)
-        self.session.add_object(obj)
 
     def evt_cmnd_lclick(self, pos):
+        '''LMB click on commands panel'''
         if self.selection == []:
             return
         if self.selection[0].owner is not self.player:
@@ -120,19 +87,71 @@ class Handlers:
         key, command = self.selection[0].get_cmd((x,y))
         if key == None:
             return # Empty slot
-        self.evt_execute_cmnd(self.selection, key, command)
-
-    def evt_execute_cmnd(self, scope, key, command):
-        command.start(scope)
+        self.act_execute_cmnd(self.selection, command)
 
     def update_board_pos(self):
         v = self.ui_vars
         v.b_sx = v.v_sx // v.cell_px
         v.b_sy = v.v_sy // v.cell_px
 
+    # Actions
+
+    def act_select(self, pos):
+        v = self.ui_vars
+        board = self.session.board
+        shift = pg.key.get_mods() & pg.KMOD_SHIFT
+        x, y = pos
+        obj = board.get_object((x,y))
+        if obj is not None:
+            if shift:
+                if obj.selected:
+                    obj.deselect()
+                    self.selection.remove(obj)
+                else:
+                    obj.select()
+                    self.selection += [obj]
+            else:
+                self.act_deselect_all()
+                obj.select()
+                self.selection = [obj]
+        else:
+            if not shift: self.act_deselect_all()
+            # Clicking with shift at an empty cell does nothing
+        self.sort_selection()
+        self.tell_dirty()
+
+    # Command execution-related methods
+
+    def act_execute_cmnd(self, scope, command):
+        if command.takes_pt or command.takes_obj:
+            self.pointing_for = (command, scope)
+            self.pointing = True
+        else:
+            command.start(self.session, scope)
+
+    def act_point(self, coords):
+        command, scope = self.pointing_for
+        if command.takes_pt:
+            self.act_point_coords(coords)
+        else:
+            self.act_point_object(coords)
+
+    def act_point_coords(self, coords):
+        command, scope = self.pointing_for
+        command.start(self.session, scope, coords)
+        self.pointing_for = (None, None)
+        self.pointing = False
+
+    def act_point_object(self, coords):
+        command, scope = self.pointing_for
+        obj = self.session.board.get_object(coords)
+        command.start(self.session, scope, obj)
+        self.pointing_for = (None, None)
+        self.pointing = False
+
     # Selection-related methods
 
-    def deselect_all(self):
+    def act_deselect_all(self):
         for obj in self.selection:
             obj.deselect()
         self.selection = []

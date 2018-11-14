@@ -100,3 +100,6 @@ class Session:
 
     def tell_destroyed(self, obj):
         self.rem_object(obj)
+
+    def request_subpercell(self):
+        return self.app.CORE.sub_per_cell

@@ -1,84 +1,95 @@
-'''
-Commands end:
-- immediatelly
-- after set amount of ticks
-- on trigger
-This is defined by 'end' and 'duration' parameters
-Commands can be soft or hard. Soft commands can be executed while hard one
-is in progress. If a command is added with out Shift, all other soft
-commands are cancelled. If a hard command is added while other hard
-command is running, the added command is added to the commands queue.
-<When more objects in selection>
-If command is hard it is only executed by one unit
-else by every object that can
-'''
-
 class Command:
-    '''Command class
-    Parameters:
-        method [func] Main command function
-        hard [bool] True if command is hard, False if soft
-        duration [int] Duration of the command
-        end [func/lambda] When command ends
-        pre [Command](None) Command to execute before this one.
-            Has to be uninterrupted to start main function
-        post [Command](None) Command to execute after this one
-        takes_pt [bool](False) Commands takes board coords as param when exec.
-        takes_obj [bool](False) Command takes board obj as param when exec.
-        param_valid [func/lambda] Function that checks is exe-time parameter
-            is valid
-        prereqs [func/lambda list] Requirements needed to start PRE
-            Parameters must return booleans
-        reqs [func/lambda list] Requirements needed to start the command
-            Parameters must return booleans
-        get_perc [func/lambda] Function that returns progress percentage
-        is both duration and end-conditions are set an exception will be raised
-    '''
-    def __init__(self, method, hard, duration=0, end=None, pre=None, post=None,
-            takes_pt=False, takes_obj=False, param_valid=None, prereqs=[],
-            reqs=[], get_perc=None):
+    def __init__(self, instant=None, delayed=None, grouped=None, queueable=None,
+            cost=(0,0,0), duration=None, end=None, post=None, takes_pt=False,
+            takes_obj=False, instant_reqs=[], delayed_reqs=[], get_perc=None):
+        '''Command Class
+        Parameters:
+            instant     [func](None) Function executed instantly
+                params taken: session, actor [point] [object]
+            delayed     [func](None) Function executed after End is reached
+                params taken: session, actor [point] [object]
+            cost        [3-int tuple](0,0,0) Amount of resources taken from
+                player that started command
+            grouped     [bool](None) None - auto based on cost.
+                True - All selected units that have this command type added
+                will execute it. False - only one unit will execute.
+            queueable   [bool](None) None - auto based on Delayed presence
+                True - Add to queue. False - Execute instantly
+            duration    [int](None) None - end param is used instead.
+                Delay duration in ticks
+            end         [func](None) Must return a boolean. Delay ends when
+                this function returns True. Receives StartedCommand instance.
+            post        [func](None) Function executed after delayed func ends.
+            takes_pt    [bool](False) True - Command takes on-board coordinates
+                as parameter and is started when those pointed.
+            takes_obj   [bool](False) True - Command takes in-game object
+                as parameter and is started when a valid object is pointed
+            param_valid [func](None) Function that returns True when exe-time
+                parameter is valid. Takes point or object.
+            instant_reqs [func list]([]) Requirements that have to be met
+                to start instant function. Functions receive session and actor.
+            delayed_reqs [func list]([]) Requirements that have to be met
+                to start delayed function. Functions receive session and actor.
+                Checked instantly.
+            get_perc    [func](None) Function that returns completion percentage
+                (delay phase). Receives StartedCommand instance.
+        '''
+        if grouped is None:
+            grouped = True if cost == (0,0,0) else False
+        if queueable is None:
+            queueable = True if delayed is None else False
+        if duration is not None and end is not None:
+            raise ValueError('Specified both end and duration params')
+        if duration is None and end is None:
+            raise ValueError('Specify end or duration parameter')
         if takes_pt and takes_obj:
-            raise ValueError('Command can not need both Point and Object')
-        if duration != 0 and end is not None:
-            raise ValueError('Can not set both end-conditions and duration')
-        self.method = method
-        self.hard = hard
-        self.end = end
+            raise ValueError('Both takes_pt and takes_obj are True')
+        self.instant = instant
+        self.delayed = delayed
+        self.grouped = grouped
+        self.queueable = queueable
+        self.cost = cost
         self.duration = duration
-        self.pre = pre
+        self.end = end
         self.post = post
         self.takes_pt = takes_pt
         self.takes_obj = takes_obj
-        self.param_valid = param_valid
-        self.prereqs = prereqs
-        self.reqs = reqs
+        self.instant_reqs = instant_reqs
+        self.delayed_reqs = delayed_reqs
         self.get_perc = get_perc
-        self.can_perc = not get_perc is None
+        self.can_perc = get_perc is not None
 
-    def start(self, objlist, *args):
-        '''
-        objlist [Controllable list] Objects which execute command
-        '''
-        if self.hard:
-            obj = objlist[0] # TODO: Object that can exe command earliest
-            return self.queue(obj, *args)
+    def start(self, session, objlist, *args):
+        '''objlist [Controllable list] Objects which execute command'''
+        if not self.grouped:
+            objlist = [objlist[0]] # TODO: Object that can exe command earliest
+        if self.queueable:
+            for actor in objlist:
+                actor.queue_cmd(self, args) # NOTE: No args unpacking
         else:
             for actor in objlist:
-                self.execute(actor, *args)
+                self.execute(session, actor, *args)
 
-    def queue(self, object, *args):
-        object.queue_cmd(self, args)
+    def do_instant(self, session, actor, *args):
+        for req in self.instant_reqs:
+            req, what = req(session, actor)
+            if not req:
+                session.tell_required(actor, what)
+                return False
+        for req in self.delayed_reqs:
+            req, what = req(session, actor)
+            if not req:
+                session.tell_required(actor, what)
+                return False
+        if self.instant is not None:
+            self.instant(session, actor, *args)
+        return True
 
-    def execute(self, actor, *args):
-        for req in self.prereqs:
-            if not req: return
-        if self.pre is not None:
-            self.pre.execute(actor, *args)
-        for req in self.reqs:
-            if not req: return
-        self.method(actor, *args)
+    def do_delayed(self, session, actor, *args):
+        if self.delayed is not None:
+            self.delayed(session, actor, *args)
         if self.post is not None:
-            self.post.execute(actor, *args)
+            self.post(session, actor, *args)
 
 
 
@@ -96,10 +107,13 @@ class StartedCommand:
         self.is_placeholder = True
 
     def check_done(self):
-        if self.command.duration != 0:
-            return self.session.tick == self.command.duration + self.start_tick
+        if self.command.duration != None:
+            return self.session.tick >= self.command.duration + self.start_tick
         else:
             return self.command.end(self)
 
-    def exec_cmd(self):
-        self.command.execute(self.actor, *self.args)
+    def do_instant(self):
+        self.command.do_instant(self.session, self.actor, *self.args)
+
+    def do_delayed(self):
+        self.command.do_delayed(self.session, self.actor, *self.args)

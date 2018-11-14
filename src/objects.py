@@ -3,6 +3,7 @@ from src.geometry import Point
 from src.weapon import Weapon
 from src.otypes import Building, Unit, Resource, Destructible
 from src.footprint import Footprint
+from src.cmd_defines import AllCommands as cmds
 
 ################################
 # Buildings
@@ -13,9 +14,11 @@ class CommandCenter(Building):
         fprint = Footprint.square(7)
         heal_pts = 1500
         armor = 2
-        weapon = Weapon()
+        weapon = Weapon() # Placeholder
         super().__init__(session, coords, fprint, heal_pts, owner, armor, weapon)
         self.objkey = 'command'
+        self.add_cmd('train_worker', cmds.train_worker, (0,1))
+        self.add_cmd('train_soldier', cmds.train_soldier, (1,1))
 
 class Wall(Building):
     def __init__(self, session, coords, owner):
@@ -49,7 +52,7 @@ class Worker(Unit):
         damage, rate, range = 5, 20, 2
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        speed = 1.7
+        speed = 5
         super().__init__(session,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'worker'
 
@@ -61,7 +64,7 @@ class Soldier(Unit):
         damage, rate, range = 7, 17, 4
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        speed = 1.4
+        speed = 3
         super().__init__(session,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'soldier'
 

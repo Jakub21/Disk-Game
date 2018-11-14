@@ -2,6 +2,7 @@ from numpy import array
 from random import randrange as rand
 from PIL import Image
 from src.geometry import Point, Vector
+from src.jps import Pathfinder
 
 import logging
 Log = logging.getLogger('MainLogger')
@@ -71,7 +72,8 @@ class Cell:
                 if self.subcells[y][x] == obj:
                     self.subcells[y][x] = None
         ncnt = sum(1 for row in self.subcells for e in row if e is None)
-        self.occupied = 0 if ncnt == pow(size, 2) else 1
+        self.occupied = 2 if self.sqr_occupier != None else (
+            0 if ncnt == pow(size, 2) else 1)
 
 
 
@@ -85,6 +87,12 @@ class Board:
         self.starts = []
         self.toplace = []
         self.load_png(path)
+        self.finder = Pathfinder(self)
+
+    def request_path(self, fp, orig, dest):
+        orig.to_ints()
+        dest.to_ints()
+        return [Point(*pt) for pt in self.finder.find(fp, orig, dest)]
 
     def get(self, coords):
         try: x, y = coords.get() # Point obj

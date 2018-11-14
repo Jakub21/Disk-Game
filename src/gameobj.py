@@ -83,8 +83,7 @@ class Controllable(Object):
         self.weapon.update()
         if self.busy and not self.current.is_placeholder:
             if self.current.check_done():
-                Log.debug('Exe at tick: {}'.format(self.session.tick))
-                self.current.exec_cmd()
+                self.current.do_delayed()
                 self.busy = False
                 self.cmd_perc = None
                 if self.queue == []:
@@ -93,10 +92,10 @@ class Controllable(Object):
                 if self.current.command.can_perc:
                     self.cmd_perc = self.current.command.get_perc()
         if self.queue != [] and not self.busy:
-            Log.debug('Started at tick: {}'.format(self.session.tick))
             self.busy = True
             command, args = self.queue[0]
             self.current = StartedCommand(self.session, self, command, *args)
+            self.current.do_instant()
             self.queue = self.queue[1:]
 
     def get_attrs(self):
