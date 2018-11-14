@@ -23,7 +23,8 @@ class Unit(Controllable):
         self.direction = Point(0, 0)
         self.nodes = []
         self.otype = 'U'
-        self.add_cmd('move', cmds.move, (1,0))
+        self.add_cmd('stop', cmds.stop, (1,0))
+        self.add_cmd('move', cmds.move, (2,0))
 
     def update(self, tick):
         super().update(tick)
@@ -51,6 +52,8 @@ class Unit(Controllable):
     def request_path(self):
         self.nodes = self.session.board.request_path( \
             self.footprint, self.coords, self.dest)
+        self.node = Point(-1, -1)
+        self.direction = Point(0, 0)
 
     def _get_direction(self, orig, dest):
         dx = (1 if orig.x < dest.x else -1) if orig.x != dest.x else 0

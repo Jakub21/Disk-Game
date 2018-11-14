@@ -62,7 +62,7 @@ class Controllable(Object):
         self.busy = False
         self.current = StartedCommand.placeholder()
         self.cmd_perc = None
-        self.add_cmd('dmg_self', cmds.dmg_self, (0,0))
+        self.add_cmd('cancel', cmds.cancel, (0,0))
 
     def add_cmd(self, key, command, position):
         self.commands[key] = (command, position)

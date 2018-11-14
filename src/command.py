@@ -4,17 +4,19 @@ class Command:
             takes_obj=False, instant_reqs=[], delayed_reqs=[], get_perc=None):
         '''Command Class
         Parameters:
-            instant     [func](None) Function executed instantly
-                params taken: session, actor [point] [object]
-            delayed     [func](None) Function executed after End is reached
-                params taken: session, actor [point] [object]
+            instant     [func](None) Function executed instantly.
+                Params taken: session, actor [point] [object]
+            delayed     [func](None) Function executed after End is reached.
+                Commands that are not queueable can not have delayed method
+                Params taken: session, actor [point] [object]
             cost        [3-int tuple](0,0,0) Amount of resources taken from
                 player that started command
             grouped     [bool](None) None - auto based on cost.
                 True - All selected units that have this command type added
                 will execute it. False - only one unit will execute.
             queueable   [bool](None) None - auto based on Delayed presence
-                True - Add to queue. False - Execute instantly
+                True - Add to queue. False - Execute instantly.
+                forced_queue kw-arg of start method overrides this setting.
             duration    [int](None) None - end param is used instead.
                 Delay duration in ticks
             end         [func](None) Must return a boolean. Delay ends when
@@ -38,6 +40,8 @@ class Command:
             grouped = True if cost == (0,0,0) else False
         if queueable is None:
             queueable = True if delayed is None else False
+        if queueable is False and delayed is not None:
+            raise ValueError('Non-queueable commands cannot have delayed method')
         if duration is not None and end is not None:
             raise ValueError('Specified both end and duration params')
         if duration is None and end is None:
@@ -59,16 +63,16 @@ class Command:
         self.get_perc = get_perc
         self.can_perc = get_perc is not None
 
-    def start(self, session, objlist, *args):
+    def start(self, session, objlist, *args, forced_queue=False):
         '''objlist [Controllable list] Objects which execute command'''
         if not self.grouped:
             objlist = [objlist[0]] # TODO: Object that can exe command earliest
-        if self.queueable:
+        if self.queueable or forced_queue:
             for actor in objlist:
                 actor.queue_cmd(self, args) # NOTE: No args unpacking
         else:
             for actor in objlist:
-                self.execute(session, actor, *args)
+                self.do_instant(session, actor, *args)
 
     def do_instant(self, session, actor, *args):
         for req in self.instant_reqs:
@@ -103,8 +107,10 @@ class StartedCommand:
         self.start_tick = self.session.tick
 
     @classmethod
-    def placeholder(self):
-        self.is_placeholder = True
+    def placeholder(cls):
+        obj = cls.__new__(cls)
+        obj.is_placeholder = True
+        return obj
 
     def check_done(self):
         if self.command.duration != None:

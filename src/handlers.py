@@ -127,7 +127,8 @@ class Handlers:
             self.pointing_for = (command, scope)
             self.pointing = True
         else:
-            command.start(self.session, scope)
+            shift = pg.key.get_mods() & pg.KMOD_SHIFT
+            command.start(self.session, scope, forced_queue=shift)
 
     def act_point(self, coords):
         command, scope = self.pointing_for
@@ -138,14 +139,16 @@ class Handlers:
 
     def act_point_coords(self, coords):
         command, scope = self.pointing_for
-        command.start(self.session, scope, coords)
+        shift = pg.key.get_mods() & pg.KMOD_SHIFT
+        command.start(self.session, scope, coords, forced_queue=shift)
         self.pointing_for = (None, None)
         self.pointing = False
 
     def act_point_object(self, coords):
         command, scope = self.pointing_for
         obj = self.session.board.get_object(coords)
-        command.start(self.session, scope, obj)
+        shift = pg.key.get_mods() & pg.KMOD_SHIFT
+        command.start(self.session, scope, obj, forced_queue=shift)
         self.pointing_for = (None, None)
         self.pointing = False
 
