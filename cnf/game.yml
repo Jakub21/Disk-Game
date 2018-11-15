@@ -3,7 +3,7 @@
 ################################
 
 # General
-ticks_per_sec: 30
+ticks_per_sec: 15
 
 # Starting resources
 starting_wood: 200

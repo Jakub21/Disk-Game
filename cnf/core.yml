@@ -25,7 +25,7 @@ fonts: # Defines fonts (font_key: [height, is_bold])
     label:      [12, False]
     button:     [12, False]
     version:    [10, False]
-    resource:   [17, False]
+    resource:   [22, False]
     obj_name:   [25, False]
     counter:    [22, False]
     loading:    [50,  True]

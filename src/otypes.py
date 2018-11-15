@@ -1,6 +1,5 @@
 from src.gameobj import Object, Controllable
 from src.weapon import Weapon
-from src.cmd_defines import AllCommands as cmds
 from src.geometry import Point
 
 class Building(Controllable):
@@ -23,8 +22,8 @@ class Unit(Controllable):
         self.direction = Point(0, 0)
         self.nodes = []
         self.otype = 'U'
-        self.add_cmd('stop', cmds.stop, (1,0))
-        self.add_cmd('move', cmds.move, (2,0))
+        self.add_cmd('stop', self.session.cmds.stop, (1,0))
+        self.add_cmd('move', self.session.cmds.move, (2,0))
 
     def update(self, tick):
         super().update(tick)

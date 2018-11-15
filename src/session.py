@@ -1,4 +1,5 @@
 import src.objects as o
+from src.cmd_defines import AllCommands
 
 import logging
 Log = logging.getLogger('MainLogger')
@@ -13,6 +14,7 @@ class Session:
         self.players = []
         self.objects = []
         self.ticks_per_sec = self.app.GAME.ticks_per_sec
+        self.cmds = AllCommands()
 
     def reinit(self, app):
         self.app = app
@@ -103,3 +105,8 @@ class Session:
 
     def request_subpercell(self):
         return self.app.CORE.sub_per_cell
+
+    def tell_required(self, player, what):
+        '''Tells player what is required, triggered by Command.do_instant'''
+        Log.debug('Player {} needs more {}'.format(player.username, what))
+        # TODO

@@ -1,5 +1,8 @@
+import logging
+Log = logging.getLogger('MainLogger')
+
 class Command:
-    def __init__(self, instant=None, delayed=None, grouped=None, queueable=None,
+    def __init__(self, name, instant=None, delayed=None, grouped=None, queueable=None,
             cost=(0,0,0), duration=None, end=None, post=None, takes_pt=False,
             takes_obj=False, instant_reqs=[], delayed_reqs=[], get_perc=None):
         '''Command Class
@@ -10,7 +13,7 @@ class Command:
                 Commands that are not queueable can not have delayed method
                 Params taken: session, actor [point] [object]
             cost        [3-int tuple](0,0,0) Amount of resources taken from
-                player that started command
+                player that started command. Checked as if was in instant_reqs
             grouped     [bool](None) None - auto based on cost.
                 True - All selected units that have this command type added
                 will execute it. False - only one unit will execute.
@@ -48,6 +51,7 @@ class Command:
             raise ValueError('Specify end or duration parameter')
         if takes_pt and takes_obj:
             raise ValueError('Both takes_pt and takes_obj are True')
+        self.name = name
         self.instant = instant
         self.delayed = delayed
         self.grouped = grouped
@@ -75,11 +79,18 @@ class Command:
                 self.do_instant(session, actor, *args)
 
     def do_instant(self, session, actor, *args):
+        owner = actor.owner
+        can_afford, what = owner.check_rsrc(self.cost)
+        if not can_afford:
+            session.tell_required(owner, what)
+            return False
         for req in self.instant_reqs:
             req, what = req(session, actor)
             if not req:
-                session.tell_required(actor, what)
+                session.tell_required(actor.owner, what)
                 return False
+        owner.charge_rsrc(self.cost)
+        actor.session.tell_tell_dirty()
         for req in self.delayed_reqs:
             req, what = req(session, actor)
             if not req:
@@ -94,7 +105,6 @@ class Command:
             self.delayed(session, actor, *args)
         if self.post is not None:
             self.post(session, actor, *args)
-
 
 
 class StartedCommand:
@@ -119,7 +129,7 @@ class StartedCommand:
             return self.command.end(self)
 
     def do_instant(self):
-        self.command.do_instant(self.session, self.actor, *self.args)
+        return self.command.do_instant(self.session, self.actor, *self.args)
 
     def do_delayed(self):
-        self.command.do_delayed(self.session, self.actor, *self.args)
+        return self.command.do_delayed(self.session, self.actor, *self.args)

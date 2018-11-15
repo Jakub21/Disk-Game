@@ -43,6 +43,8 @@ class Interface:
         v.subc_px = c.pix_per_sub                   #SubCell:Size
         v.cell_px = v.subc_px*c.sub_per_cell        #Cell:Size
         # Interface (Constants)
+        v.rsr_icos = 30                             #Resources:Icons:Size
+        v.rsr_spc = 10                              #Resources:Spacing
         v.cns_ch = 200                              #Console:Center:Size:Y
         v.cns_ss = 320                              #Console:Sides:Size
         v.ccap_crty = -28                           #Console:Cap:Correction:Y
@@ -112,6 +114,7 @@ class Interface:
     def blit_full(self):
         self.blit_terrain()
         self.blit_objects()
+        self.blit_resources()
         self.blit_console()
 
     def blit_terrain(self):
@@ -142,6 +145,32 @@ class Interface:
             x = (obj.coords.x - v.b_sx - size + xmod)*v.cell_px
             y = (obj.coords.y - v.b_sy - size + ymod)*v.cell_px
             self.screen.blit(texture, (x, y))
+
+    def blit_resources(self):
+        v = self.ui_vars
+        font = Font(self.CORE.font_family, self.CORE.fonts['resource'][0])
+        txt_right = v.disp_w - v.rsr_icos - 2*v.rsr_spc
+        ico_left = v.disp_w - v.rsr_icos - v.rsr_spc
+        h = v.rsr_icos + v.rsr_spc
+        self.screen.blit(self.gfx.icons['wood'], (ico_left, v.rsr_spc))
+        self.screen.blit(self.gfx.icons['iron'], (ico_left, h+v.rsr_spc))
+        self.screen.blit(self.gfx.icons['fuel'], (ico_left, 2*h+v.rsr_spc))
+        plr = self.player
+        wood_amount = font.render(str(plr.r_wood), False, self.colors.white)
+        w_rect = wood_amount.get_rect()
+        w_rect.right = txt_right
+        w_rect.top = v.rsr_spc
+        iron_amount = font.render(str(plr.r_iron), False, self.colors.white)
+        i_rect = iron_amount.get_rect()
+        i_rect.right = txt_right
+        i_rect.top = h + v.rsr_spc
+        fuel_amount = font.render(str(plr.r_fuel), False, self.colors.white)
+        f_rect = fuel_amount.get_rect()
+        f_rect.right = txt_right
+        f_rect.top = 2*h + v.rsr_spc
+        self.screen.blit(wood_amount, w_rect)
+        self.screen.blit(iron_amount, i_rect)
+        self.screen.blit(fuel_amount, f_rect)
 
     def blit_console(self):
         v = self.ui_vars

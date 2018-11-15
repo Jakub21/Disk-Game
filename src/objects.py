@@ -3,7 +3,6 @@ from src.geometry import Point
 from src.weapon import Weapon
 from src.otypes import Building, Unit, Resource, Destructible
 from src.footprint import Footprint
-from src.cmd_defines import AllCommands as cmds
 
 ################################
 # Buildings
@@ -12,19 +11,17 @@ from src.cmd_defines import AllCommands as cmds
 class CommandCenter(Building):
     def __init__(self, session, coords, owner):
         fprint = Footprint.square(7)
-        heal_pts = 1500
-        armor = 2
+        heal_pts, armor = 1500, 2
         weapon = Weapon() # Placeholder
         super().__init__(session, coords, fprint, heal_pts, owner, armor, weapon)
         self.objkey = 'command'
-        self.add_cmd('train_worker', cmds.train_worker, (0,1))
-        self.add_cmd('train_soldier', cmds.train_soldier, (1,1))
+        self.add_cmd('train_worker', self.session.cmds.train_worker, (0,1))
+        self.add_cmd('train_soldier', self.session.cmds.train_soldier, (1,1))
 
 class Wall(Building):
     def __init__(self, session, coords, owner):
         fprint = Footprint.square(2)
-        heal_pts = 500
-        armor = 2
+        heal_pts, armor = 500, 2
         weapon = Weapon() # Placeholder
         super().__init__(session, coords, fprint, heal_pts, owner, armor, weapon)
         self.objkey = 'wall'
@@ -32,9 +29,8 @@ class Wall(Building):
 class Tower(Building):
     def __init__(self, session, coords, owner):
         fprint = Footprint.square(3)
-        heal_pts = 800
-        armor = 2
-        damage, rate, range = 5, 30, 5
+        heal_pts, armor = 800, 2
+        damage, rate, range = 5, 15, 5
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
         super().__init__(session, coords, fprint, heal_pts, owner, armor, weapon)
@@ -47,24 +43,22 @@ class Tower(Building):
 class Worker(Unit):
     def __init__(self, session, coords, owner):
         fprint = Footprint.round(1.3)
-        heal_pts = 50
-        armor = 0
-        damage, rate, range = 5, 20, 2
+        heal_pts, armor = 50, 0
+        damage, rate, range = 5, 10, 2
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        speed = 5
+        speed = 6
         super().__init__(session,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'worker'
 
 class Soldier(Unit):
     def __init__(self, session, coords, owner):
         fprint = Footprint.round(1.6)
-        heal_pts = 80
-        armor = 0
-        damage, rate, range = 7, 17, 4
+        heal_pts, armor = 80, 0
+        damage, rate, range = 7, 9, 4
         ignore_armor = False
         weapon = Weapon(damage, rate, range, ignore_armor)
-        speed = 3
+        speed = 4
         super().__init__(session,coords,fprint,heal_pts,owner,armor,weapon,speed)
         self.objkey = 'soldier'
 

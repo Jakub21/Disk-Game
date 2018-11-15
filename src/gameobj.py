@@ -1,8 +1,4 @@
 from src.command import StartedCommand
-from src.cmd_defines import AllCommands as cmds
-
-import logging
-Log = logging.getLogger('MainLogger')
 
 class Object:
     '''Object is an class used for anything placed on board
@@ -62,7 +58,7 @@ class Controllable(Object):
         self.busy = False
         self.current = StartedCommand.placeholder()
         self.cmd_perc = None
-        self.add_cmd('cancel', cmds.cancel, (0,0))
+        self.add_cmd('cancel', self.session.cmds.cancel, (0,0))
 
     def add_cmd(self, key, command, position):
         self.commands[key] = (command, position)
@@ -95,7 +91,9 @@ class Controllable(Object):
             self.busy = True
             command, args = self.queue[0]
             self.current = StartedCommand(self.session, self, command, *args)
-            self.current.do_instant()
+            if not self.current.do_instant():
+                self.current = StartedCommand.placeholder()
+                self.busy = False
             self.queue = self.queue[1:]
 
     def get_attrs(self):

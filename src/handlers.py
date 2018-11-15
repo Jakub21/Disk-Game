@@ -87,6 +87,7 @@ class Handlers:
         key, command = self.selection[0].get_cmd((x,y))
         if key == None:
             return # Empty slot
+        #Log.debug('Clicked {}'.format(key))
         self.act_execute_cmnd(self.selection, command)
 
     def update_board_pos(self):
